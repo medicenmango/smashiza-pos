@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "La Smashiza"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "6d495f4b-34a8-4351-a707-d2a9f68ef9a1"
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 14.220910336968956,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 1562.1641738037747,
+            "y": 305.14770819156684
+          },
+          "nodeIndex": "Medidas",
+          "nodeLineageTag": "cd6264db-4253-4290-35a6-ccddeeff0123",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 626.17606191464552,
+            "y": 456.12708832443053
+          },
+          "nodeIndex": "Calendario",
+          "nodeLineageTag": "7c1e9a40-6b2d-4f8a-9c31-0e5d8a7b6c41",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 289.33811078077088,
+            "y": 5.6976550010135725
+          },
+          "nodeIndex": "Clientes",
+          "nodeLineageTag": "23b8ca31-4253-48f6-9b0c-233445566778",
+          "size": {
+            "height": 152,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1846.1641738037747,
+            "y": 355.14770819156684
+          },
+          "nodeIndex": "Comparar",
+          "nodeLineageTag": "e301c001-1111-4aaa-9001-comparar000001",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 333.84431504357894,
+            "y": 732.29541638313367
+          },
+          "nodeIndex": "Estado",
+          "nodeLineageTag": "9a3f31a8-1920-4f6d-0273-9abbccddeeff",
+          "size": {
+            "height": 128,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1216.8798334292719,
+            "y": 236.44067886699895
+          },
+          "nodeIndex": "Inventario",
+          "nodeLineageTag": "3f972ad0-2d86-4426-8b04-e3c81ddd8adb",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 990.79563372880989,
+            "y": -50
+          },
+          "nodeIndex": "Menu",
+          "nodeLineageTag": "7d36fa34-d11d-4bff-bc13-ef742cca693e",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 50.000021644415938,
+            "y": 225.9614479174021
+          },
+          "nodeIndex": "MetodoPago",
+          "nodeLineageTag": "670c0e75-8697-4c3a-df40-6778899abbcc",
+          "size": {
+            "height": 128,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 2130.1641738037747,
+            "y": 391.14770819156684
+          },
+          "nodeIndex": "ModoComparacion",
+          "nodeLineageTag": "e401d001-1111-4aaa-9001-modo0000000001",
+          "size": {
+            "height": 128,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 921.12011871381173,
+            "y": 393.19039934899507
+          },
+          "nodeIndex": "Movimientos",
+          "nodeLineageTag": "99203142-5364-4f67-0273-94a5b6c7d8e9",
+          "size": {
+            "height": 296,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 635.32182034227856,
+            "y": 86.711272167012339
+          },
+          "nodeIndex": "OrdenDetalle",
+          "nodeLineageTag": "3e9c1a47-8b2d-4f06-91c0-7a5e4d2b8c11",
+          "size": {
+            "height": 176,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 339.49535561393304,
+            "y": 213.08750409217038
+          },
+          "nodeIndex": "Ordenes",
+          "nodeLineageTag": "c662e78a-b906-4620-9c73-eabb85667d32",
+          "size": {
+            "height": 300,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1328.1641738037747,
+            "y": -48.504831254557075
+          },
+          "nodeIndex": "Recetas",
+          "nodeLineageTag": "44d5e6f7-0819-4a12-bd3e-4f5061728394",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 50,
+            "y": 459.95289120834406
+          },
+          "nodeIndex": "Turno",
+          "nodeLineageTag": "e201b001-1111-4aaa-9001-turno000000001",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "All tables",
+      "zoomValue": 63.287087723234038,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "All tables",
+  "defaultDiagram": "All tables"
+}

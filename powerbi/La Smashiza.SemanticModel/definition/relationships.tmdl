@@ -1,0 +1,47 @@
+relationship 01c4d123-d874-4b3e-baad-7697ab747a63
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Ordenes.Fecha
+	toColumn: Calendario.Fecha
+
+relationship 61ae0001-1111-4aaa-8001-aaaaaaaa0001
+	fromColumn: OrdenDetalle.Num_Orden
+	toColumn: Ordenes.Num_Orden
+
+relationship 61ae0002-2222-4aaa-8002-aaaaaaaa0002
+	fromColumn: OrdenDetalle.Producto_Id
+	toColumn: Menu.Id
+
+relationship 61ae0003-3333-4aaa-8003-aaaaaaaa0003
+	fromColumn: Ordenes.Metodo_Pago
+	toColumn: MetodoPago.Metodo_Pago
+
+relationship 61ae0004-4444-4aaa-8004-aaaaaaaa0004
+	fromColumn: Ordenes.Estado
+	toColumn: Estado.Estado
+
+relationship 61ae0005-5555-4aaa-8005-aaaaaaaa0005
+	fromColumn: Ordenes.Cliente_Key
+	toColumn: Clientes.Cliente_Key
+
+relationship 61ae0006-6666-4aaa-8006-aaaaaaaa0006
+	fromColumn: Recetas.Producto_Id
+	toColumn: Menu.Id
+
+relationship 61ae0007-7777-4aaa-8007-aaaaaaaa0007
+	fromColumn: Recetas.Ingrediente_Id
+	toColumn: Inventario.Ingrediente_Id
+
+relationship 61ae0008-8888-4aaa-8008-aaaaaaaa0008
+	fromColumn: Movimientos.Ingrediente_Id
+	toColumn: Inventario.Ingrediente_Id
+
+relationship 61ae0010-aaaa-4aaa-8010-aaaaaaaa0010
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Movimientos.Fecha
+	toColumn: Calendario.Fecha
+
+relationship 61ae0011-bbbb-4aaa-8011-bbbbbbbb0011
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Ordenes.Fecha_Turno
+	toColumn: Turno.Fecha
+

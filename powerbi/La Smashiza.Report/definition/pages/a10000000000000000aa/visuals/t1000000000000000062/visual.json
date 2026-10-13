@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "t1000000000000000062",
+  "position": {
+    "x": 24,
+    "y": 96,
+    "z": 2000,
+    "height": 860,
+    "width": 1872,
+    "tabOrder": 2000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Para qué sirve",
+                    "textStyle": {
+                      "fontFamily": "Courier New",
+                      "fontSize": "22pt",
+                      "color": "#ffd700"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Para ver a toda la clientela y cada una de sus órdenes.\n\nPeríodo es opcional y es fecha de calendario. Sin fechas, ves todo el historial. Con fechas, la última visita y los días sin pedir se calculan dentro de ese rango.\n\nUn cliente es nombre y dirección. Dos personas con el mismo nombre no se suman juntas.\n\nArriba: cuántos clientes, ventas, órdenes y ticket. Entran los sin nombre. Quedan fuera las canceladas.\n\nEn medio hay tres listas de ocho: quién más gasta, quién pide más y quién lleva más días sin pedir.\n\nAbajo, cada orden de cada cliente, con el total de esa orden. No es un resumen sumado.\n\nDías sin pedir es la distancia entre la última orden de ese cliente, dentro del período si hay uno, y hoy.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "20pt",
+                      "color": "#f5e6c8"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "parentGroupName": "g1000000000000000006"
+}

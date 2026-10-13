@@ -1,0 +1,41 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/bookmark/2.1.0/schema.json",
+  "displayName": "Hoja 4",
+  "name": "b1000000000000000004",
+  "options": {
+    "suppressActiveSection": true,
+    "suppressData": true
+  },
+  "explorationState": {
+    "version": "1.0",
+    "activeSection": "a10000000000000000aa",
+    "sections": {
+      "a10000000000000000aa": {
+        "visualContainers": {},
+        "visualContainerGroups": {
+          "g1000000000000000001": {
+            "isHidden": true
+          },
+          "g1000000000000000002": {
+            "isHidden": true
+          },
+          "g1000000000000000003": {
+            "isHidden": true
+          },
+          "g1000000000000000004": {
+            "isHidden": false
+          },
+          "g1000000000000000005": {
+            "isHidden": true
+          },
+          "g1000000000000000006": {
+            "isHidden": true
+          },
+          "g1000000000000000007": {
+            "isHidden": true
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	valueFilterBehavior: independent
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["Ordenes","Inventario","Menu","OrdenDetalle","Recetas","Movimientos","Clientes"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table Ordenes
+ref table Inventario
+ref table Menu
+ref table OrdenDetalle
+ref table Recetas
+ref table Movimientos
+ref table Clientes
+ref table MetodoPago
+ref table Estado
+ref table Medidas
+ref table Calendario
+ref table Turno
+ref table Comparar
+ref table ModoComparacion
+
+ref cultureInfo en-US
+

@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "t1000000000000000023",
+  "position": {
+    "x": 976,
+    "y": 96,
+    "z": 3000,
+    "height": 880,
+    "width": 920,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Mundo de inventario",
+                    "textStyle": {
+                      "fontFamily": "Courier New",
+                      "fontSize": "22pt",
+                      "color": "#ffd700"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Movimientos registra entradas y salidas de ingredientes. Inventario es el catálogo de ingredientes. Recetas dice qué ingredientes lleva un producto: relaciona los dos catálogos y no recorta ventas ni stock.\n\nLos movimientos usan el mismo Calendario. No están unidos a las órdenes. Filtrar un producto no mueve el inventario.\n\nPara agregar un filtro, usa la tabla de catálogo, no el detalle:\nFecha de calendario: Calendario, columna Fecha. Recorta ventas e inventario.\nFecha de turno: Turno, columna Fecha. Solo Daily.\nProducto: Menú. Recorta lo vendido, no el stock.\nCliente: Clientes, columna Cliente Direccion.\nEstado o pago: Estado o MetodoPago.\nIngrediente: Inventario. Recorta movimientos, no las ventas.\nComparar y ModoComparacion no filtran ventas. Solo eligen contra qué se compara en Daily.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "18pt",
+                      "color": "#f5e6c8"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "parentGroupName": "g1000000000000000002"
+}

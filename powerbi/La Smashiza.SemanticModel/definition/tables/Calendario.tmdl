@@ -1,0 +1,126 @@
+table Calendario
+	lineageTag: 7c1e9a40-6b2d-4f8a-9c31-0e5d8a7b6c41
+	dataCategory: Time
+
+	column Fecha
+		dataType: dateTime
+		isKey
+		formatString: dd/MM/yyyy
+		lineageTag: 8d2f0b51-7c3e-4a9b-ad42-1f6e9b8c7d52
+		dataCategory: PaddedDateTableDates
+		summarizeBy: none
+		sourceColumn: [Fecha]
+
+		annotation SummarizationSetBy = User
+
+	column Año = YEAR ( [Fecha] )
+		dataType: int64
+		formatString: 0
+		lineageTag: 9e301c62-8d4f-4bac-be53-207fac9d8e63
+		dataCategory: Years
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+	column MesNo = MONTH ( [Fecha] )
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: af412d73-9e50-4cbd-cf64-3180bdae9f74
+		dataCategory: MonthOfYear
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+	column Mes =
+			SWITCH (
+			    [MesNo],
+			    1, "enero",
+			    2, "febrero",
+			    3, "marzo",
+			    4, "abril",
+			    5, "mayo",
+			    6, "junio",
+			    7, "julio",
+			    8, "agosto",
+			    9, "septiembre",
+			    10, "octubre",
+			    11, "noviembre",
+			    12, "diciembre"
+			)
+		dataType: string
+		lineageTag: b0523e84-af61-4dce-d075-4291cbef0a85
+		dataCategory: Months
+		summarizeBy: none
+		sortByColumn: MesNo
+
+		annotation SummarizationSetBy = User
+
+	column TrimestreNo = INT ( ( [MesNo] + 2 ) / 3 )
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: c1634f95-b072-4edf-e186-53a2dc001b96
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+	column Trimestre = "T" & [TrimestreNo]
+		dataType: string
+		lineageTag: d27450a6-c183-4fe0-f297-64b3ed112ca7
+		dataCategory: Quarters
+		summarizeBy: none
+		sortByColumn: TrimestreNo
+
+		annotation SummarizationSetBy = User
+
+	column Dia = DAY ( [Fecha] )
+		dataType: int64
+		formatString: 0
+		lineageTag: e38561b7-d294-40f1-a3a8-75c4fe223db8
+		dataCategory: DayOfMonth
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+	hierarchy Fechas
+		lineageTag: f49672c8-e3a5-41a2-b4b9-86d50f334ec9
+
+		level Año
+			lineageTag: 01a783d9-f4b6-42b3-c5ca-97e610445fda
+			column: Año
+
+		level Trimestre
+			lineageTag: 12b894ea-05c7-43c4-d6db-a8f7215560eb
+			column: Trimestre
+
+		level Mes
+			lineageTag: 23c9a5fb-16d8-44d5-e7ec-b908326671fc
+			column: Mes
+
+		level Dia
+			lineageTag: 34dab60c-27e9-45e6-f8fd-ca194377820d
+			column: Dia
+
+	partition Calendario = calculated
+		mode: import
+		source =
+				VAR OrdenFechas =
+				    SELECTCOLUMNS ( Ordenes, "Fecha", Ordenes[Fecha] )
+				VAR MovFechas =
+				    SELECTCOLUMNS ( Movimientos, "Fecha", Movimientos[Fecha] )
+				VAR Todas =
+				    FILTER ( UNION ( OrdenFechas, MovFechas ), NOT ISBLANK ( [Fecha] ) )
+				VAR MinFecha =
+				    MINX ( Todas, [Fecha] )
+				VAR MaxFecha =
+				    MAXX ( Todas, [Fecha] )
+				VAR Inicio =
+				    IF ( ISBLANK ( MinFecha ), DATE ( YEAR ( TODAY () ), 1, 1 ), DATE ( YEAR ( MinFecha ), 1, 1 ) )
+				VAR Fin =
+				    IF ( ISBLANK ( MaxFecha ), DATE ( YEAR ( TODAY () ), 12, 31 ), DATE ( YEAR ( MaxFecha ), 12, 31 ) )
+				RETURN
+				    SELECTCOLUMNS ( CALENDAR ( Inicio, Fin ), "Fecha", [Date] )
+
+	annotation PBI_ResultType = Table
+

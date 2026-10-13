@@ -1,0 +1,41 @@
+table Estado
+	lineageTag: 9a3f31a8-1920-4f6d-0273-9abbccddeeff
+
+	column Estado
+		dataType: string
+		lineageTag: ab4042b9-2031-407e-1384-abbccddeeff0
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Estado]
+		sortByColumn: Orden_Estado
+
+		annotation SummarizationSetBy = User
+
+	column Orden_Estado
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: bc5153ca-3142-418f-2495-bbccddeeff01
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Orden_Estado]
+
+		annotation SummarizationSetBy = User
+
+	partition Estado = calculated
+		mode: import
+		source =
+				DATATABLE (
+				    "Estado", STRING,
+				    "Orden_Estado", INTEGER,
+				    {
+				        { "Pendiente", 1 },
+				        { "Preparando", 2 },
+				        { "Lista", 3 },
+				        { "Entregada", 4 },
+				        { "Cancelada", 5 }
+				    }
+				)
+
+	annotation PBI_ResultType = Table
+

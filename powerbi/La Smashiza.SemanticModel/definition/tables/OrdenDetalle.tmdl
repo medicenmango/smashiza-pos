@@ -1,0 +1,83 @@
+table OrdenDetalle
+	lineageTag: 3e9c1a47-8b2d-4f06-91c0-7a5e4d2b8c11
+
+	column Num_Orden
+		dataType: int64
+		formatString: 0
+		lineageTag: 11a2b3c4-d5e6-4789-8a0b-1c2d3e4f5061
+		summarizeBy: none
+		sourceColumn: Num_Orden
+
+		annotation SummarizationSetBy = User
+
+	column Producto
+		dataType: string
+		lineageTag: 22b3c4d5-e6f7-4890-9b1c-2d3e4f506172
+		summarizeBy: none
+		sourceColumn: Producto
+
+		annotation SummarizationSetBy = User
+
+	column Cantidad
+		dataType: int64
+		formatString: 0
+		lineageTag: 33c4d5e6-f708-4901-ac2d-3e4f50617283
+		summarizeBy: sum
+		sourceColumn: Cantidad
+
+		annotation SummarizationSetBy = User
+
+	column Producto_Id
+		dataType: string
+		isHidden
+		lineageTag: f1a2b3c4-d5e6-4789-8a0b-1c2d3e4f5062
+		summarizeBy: none
+		sourceColumn: Producto_Id
+
+		annotation SummarizationSetBy = User
+
+	partition OrdenDetalle = m
+		mode: import
+		source =
+				let
+				  Source = Excel.Workbook(File.Contents("C:\Users\cjgz\OneDrive - Universidad Autonoma de Guadalajara\SMASHIZA\Smashiza Ordenes.xlsx"), null, true),
+				  #"Navigation 1" = Source{[Item = "Ordenes", Kind = "Sheet"]}[Data],
+				  #"Promoted headers" = Table.PromoteHeaders(#"Navigation 1", [PromoteAllScalars = true]),
+				  Keep = Table.SelectColumns(#"Promoted headers", {"Num_Orden", "Productos", "Cantidades"}),
+				  AddLines = Table.AddColumn(Keep, "Lineas", each
+				    let
+				      prods = if [Productos] = null then {} else List.Select(Text.Split(Text.From([Productos]), " | "), each Text.Trim(_) <> ""),
+				      qtys = if [Cantidades] = null then {} else Text.Split(Text.From([Cantidades]), " | "),
+				      n = List.Count(prods)
+				    in
+				      List.Generate(() => 0, each _ < n, each _ + 1, each [Producto = prods{_}, CantidadTxt = if _ < List.Count(qtys) then qtys{_} else "1"])
+				  ),
+				  ExpandList = Table.ExpandListColumn(AddLines, "Lineas"),
+				  ExpandRec = Table.ExpandRecordColumn(ExpandList, "Lineas", {"Producto", "CantidadTxt"}),
+				  DropRaw = Table.RemoveColumns(ExpandRec, {"Productos", "Cantidades"}),
+				  Qty = Table.AddColumn(DropRaw, "Cantidad", each
+				    let
+				      digits = Text.Select(if [CantidadTxt] = null then "" else Text.From([CantidadTxt]), {"0".."9"})
+				    in
+				      if digits = "" then 1 else Number.From(digits), Int64.Type),
+				  Clean = Table.RemoveColumns(Qty, {"CantidadTxt"}),
+				  Typed = Table.TransformColumnTypes(Clean, {{"Num_Orden", Int64.Type}, {"Producto", type text}, {"Cantidad", Int64.Type}}),
+				  Clave = (v as any) as text => Text.Lower(Text.Trim(if v = null then "" else Text.From(v))),
+				  ConClave = Table.AddColumn(Typed, "_ProductoClave", each Clave([Producto]), type text),
+				  MenuBase = Table.SelectColumns(Menu, {"Id", "Nombre"}),
+				  MenuClave = Table.AddColumn(MenuBase, "_ProductoClave", each Clave([Nombre]), type text),
+				  MenuUnica = Table.Distinct(Table.SelectRows(Table.SelectColumns(MenuClave, {"Id", "_ProductoClave"}), each [_ProductoClave] <> ""), {"_ProductoClave"}),
+				  MergeProd = Table.NestedJoin(ConClave, {"_ProductoClave"}, MenuUnica, {"_ProductoClave"}, "MenuMatch", JoinKind.LeftOuter),
+				  ExpandProd = Table.ExpandTableColumn(MergeProd, "MenuMatch", {"Id"}, {"Producto_Id"}),
+				  ConId = Table.AddColumn(ExpandProd, "Producto_Id_Final", each
+				    if [Producto_Id] <> null and Text.Trim(Text.From([Producto_Id])) <> "" then [Producto_Id]
+				    else if [_ProductoClave] = "" then null
+				    else "retirado|" & [_ProductoClave],
+				    type text),
+				  SinClave = Table.RemoveColumns(ConId, {"_ProductoClave", "Producto_Id"}),
+				  Final = Table.RenameColumns(SinClave, {{"Producto_Id_Final", "Producto_Id"}})
+				in
+				  Final
+
+	annotation PBI_ResultType = Table
+

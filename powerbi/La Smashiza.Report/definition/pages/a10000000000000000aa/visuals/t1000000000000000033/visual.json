@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "t1000000000000000033",
+  "position": {
+    "x": 976,
+    "y": 96,
+    "z": 3000,
+    "height": 880,
+    "width": 920,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Qué entra en los números",
+                    "textStyle": {
+                      "fontFamily": "Courier New",
+                      "fontSize": "22pt",
+                      "color": "#ffd700"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Análisis cuenta todas las órdenes menos las canceladas.\nClientes hace lo mismo, e incluye pedidos sin nombre.\nDaily cuenta solo las entregadas.\n\nEn Análisis, clientes únicos deja fuera los pedidos sin nombre.\n\nSi un producto se vendió y luego salió del menú, sigue en las ventas con la categoría Retirado y el nombre con el que se vendió. No queda en blanco. No tiene precio de catálogo. El total cobrado de la orden si lo incluye. La lista de lo que no se vendió no lo menciona, porque ya no está en el menú de hoy.\n\nVentas es la suma del total de la orden. Ticket es ventas entre número de órdenes. Unidades es la suma de cantidades.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "18pt",
+                      "color": "#f5e6c8"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "parentGroupName": "g1000000000000000003"
+}

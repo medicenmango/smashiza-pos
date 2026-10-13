@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "t1000000000000000032",
+  "position": {
+    "x": 24,
+    "y": 96,
+    "z": 2000,
+    "height": 880,
+    "width": 920,
+    "tabOrder": 2000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Cliente y turno",
+                    "textStyle": {
+                      "fontFamily": "Courier New",
+                      "fontSize": "22pt",
+                      "color": "#ffd700"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Un cliente es su nombre más su dirección. Dos personas con el mismo nombre y distinta dirección son dos clientes. Un pedido sin nombre aparece como Sin nombre. Si trae dirección, se distingue por ella.\n\nEl turno llega hasta la 1:00. Una orden a la 1:00 sigue siendo del día anterior. El turno nuevo empieza a las 2:00.\n\nDaily usa la fecha de turno. Análisis y Clientes usan la fecha del calendario, la que trae la orden, sin correrla.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "18pt",
+                      "color": "#f5e6c8"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "parentGroupName": "g1000000000000000003"
+}

@@ -1,0 +1,174 @@
+table Ordenes
+	lineageTag: c662e78a-b906-4620-9c73-eabb85667d32
+
+	column Num_Orden
+		dataType: int64
+		formatString: 0
+		lineageTag: 2f4add15-c4a1-4ac9-bcc4-4cdee9a78b6d
+		summarizeBy: none
+		sourceColumn: Num_Orden
+
+		annotation SummarizationSetBy = User
+
+	column Fecha
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: ec16c1cd-546f-458e-956c-0d5fc82e1b6b
+		summarizeBy: none
+		sourceColumn: Fecha
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Hora
+		dataType: dateTime
+		formatString: hh:mm
+		lineageTag: bcb0359d-40ef-4c4f-a829-18a7c1a544f0
+		summarizeBy: none
+		sourceColumn: Hora
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Time
+
+	column Cliente
+		dataType: string
+		lineageTag: dad51e8c-7cac-4004-b0f4-046bfcdc2a6b
+		summarizeBy: none
+		sourceColumn: Cliente
+
+		annotation SummarizationSetBy = Automatic
+
+	column Direccion
+		dataType: string
+		lineageTag: baa0cca2-857d-4b40-9e39-4acdc4a630bb
+		summarizeBy: none
+		sourceColumn: Direccion
+
+		annotation SummarizationSetBy = Automatic
+
+	column Productos
+		dataType: string
+		isHidden
+		lineageTag: 67f60b06-0c1c-46a6-b83b-34905d8e206e
+		summarizeBy: none
+		sourceColumn: Productos
+
+		annotation SummarizationSetBy = Automatic
+
+	column Cantidades
+		dataType: string
+		isHidden
+		lineageTag: 9d85be46-e077-4b25-9e16-ada45cba3d74
+		summarizeBy: none
+		sourceColumn: Cantidades
+
+		annotation SummarizationSetBy = Automatic
+
+	column Comentarios
+		dataType: string
+		lineageTag: c1cf973a-50f7-40e0-a261-0fe1ec194031
+		summarizeBy: none
+		sourceColumn: Comentarios
+
+		annotation SummarizationSetBy = Automatic
+
+	column Metodo_Pago
+		dataType: string
+		lineageTag: 4c34b9cc-9b7c-4a5b-8866-f78bb421784a
+		summarizeBy: none
+		sourceColumn: Metodo_Pago
+
+		annotation SummarizationSetBy = Automatic
+
+	column Ajuste
+		dataType: int64
+		formatString: \$#,0
+		lineageTag: baf8c8b4-6fa4-4c77-9d1b-6378a9e82bc6
+		summarizeBy: sum
+		sourceColumn: Ajuste
+
+		annotation SummarizationSetBy = User
+
+	column Total
+		dataType: int64
+		formatString: \$#,0
+		lineageTag: 552c5544-f944-4ed2-a3b5-5384771688d3
+		summarizeBy: sum
+		sourceColumn: Total
+
+		annotation SummarizationSetBy = User
+
+	column Recibido
+		dataType: int64
+		formatString: \$#,0
+		lineageTag: cc3659d2-153d-41e7-ba7b-d379ec29a4c4
+		summarizeBy: sum
+		sourceColumn: Recibido
+
+		annotation SummarizationSetBy = User
+
+	column Cambio
+		dataType: int64
+		formatString: \$#,0
+		lineageTag: 616d3f71-6fc6-446e-8d6e-2e115fb4e072
+		summarizeBy: sum
+		sourceColumn: Cambio
+
+		annotation SummarizationSetBy = User
+
+	column Estado
+		dataType: string
+		lineageTag: ce61e793-01d2-46f2-9005-838120c6ece9
+		summarizeBy: none
+		sourceColumn: Estado
+
+		annotation SummarizationSetBy = Automatic
+
+	column Cliente_Key
+		dataType: string
+		isHidden
+		lineageTag: a8f31c2e-4b67-4d90-9e1a-6c5d0b8f3a21
+		summarizeBy: none
+		sourceColumn: Cliente_Key
+
+		annotation SummarizationSetBy = User
+
+	column Hora_Dia = IF ( ISBLANK ( Ordenes[Hora] ), BLANK (), HOUR ( Ordenes[Hora] ) )
+		dataType: int64
+		formatString: 00
+		lineageTag: b9e42d3f-5c78-4e01-af2b-7d6e1c9f4b32
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+	column Fecha_Turno =
+			IF (
+			    NOT ISBLANK ( Ordenes[Hora] ) && HOUR ( Ordenes[Hora] ) <= 1,
+			    Ordenes[Fecha] - 1,
+			    Ordenes[Fecha]
+			)
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: c0a53e40-6d89-4f12-b043-8e7f2d0a5b64
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition Ordenes = m
+		mode: import
+		source =
+				let
+				  Source = Excel.Workbook(File.Contents("C:\Users\cjgz\OneDrive - Universidad Autonoma de Guadalajara\SMASHIZA\Smashiza Ordenes.xlsx"), null, true),
+				  #"Navigation 1" = Source{[Item = "Ordenes", Kind = "Sheet"]}[Data],
+				  #"Promoted headers" = Table.PromoteHeaders(#"Navigation 1", [PromoteAllScalars = true]),
+				  #"Changed column type" = Table.TransformColumnTypes(#"Promoted headers", {{"Num_Orden", Int64.Type}, {"Fecha", type date}, {"Hora", type time}, {"Cliente", type text}, {"Direccion", type text}, {"Productos", type text}, {"Cantidades", type text}, {"Comentarios", type text}, {"Metodo_Pago", type text}, {"Ajuste", Int64.Type}, {"Total", Int64.Type}, {"Recibido", Int64.Type}, {"Cambio", Int64.Type}, {"Estado", type text}}),
+				  #"Added Cliente_Key" = Table.AddColumn(#"Changed column type", "Cliente_Key", each (if [Cliente] = null then "" else Text.Trim(Text.From([Cliente]))) & "|" & (if [Direccion] = null then "" else Text.Trim(Text.From([Direccion]))), type text)
+				in
+				  #"Added Cliente_Key"
+
+	annotation PBI_ResultType = Table
+

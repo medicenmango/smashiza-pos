@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "t1000000000000000022",
+  "position": {
+    "x": 24,
+    "y": 96,
+    "z": 2000,
+    "height": 880,
+    "width": 920,
+    "tabOrder": 2000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Mundo de ventas",
+                    "textStyle": {
+                      "fontFamily": "Courier New",
+                      "fontSize": "22pt",
+                      "color": "#ffd700"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Órdenes es el centro. Cada fila es un pedido: fecha, hora, cliente, pago, estado y total.\n\nOrdenDetalle parte el pedido en productos y cantidades. Se une a la orden por el número, y al menú por el id del producto.\n\nMenú es el catálogo: nombre, categoría y precio.\n\nClientes es una persona: nombre más dirección.\n\nMetodoPago y Estado clasifican el pedido.\n\nCalendario es el día de calendario de la orden. Turno es el día de turno, y solo lo usa Daily.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "18pt",
+                      "color": "#f5e6c8"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "parentGroupName": "g1000000000000000002"
+}

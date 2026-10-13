@@ -1,0 +1,39 @@
+table MetodoPago
+	lineageTag: 670c0e75-8697-4c3a-df40-6778899abbcc
+
+	column Metodo_Pago
+		dataType: string
+		lineageTag: 781d1f86-9708-4d4b-e051-78899abbccdd
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Metodo_Pago]
+		sortByColumn: Orden_Pago
+
+		annotation SummarizationSetBy = User
+
+	column Orden_Pago
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 892e2097-0819-4e5c-f162-899abbccddee
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Orden_Pago]
+
+		annotation SummarizationSetBy = User
+
+	partition MetodoPago = calculated
+		mode: import
+		source =
+				DATATABLE (
+				    "Metodo_Pago", STRING,
+				    "Orden_Pago", INTEGER,
+				    {
+				        { "Efectivo", 1 },
+				        { "Transferencia", 2 },
+				        { "Tarjeta", 3 }
+				    }
+				)
+
+	annotation PBI_ResultType = Table
+

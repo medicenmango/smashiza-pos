@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "t1000000000000000012",
+  "position": {
+    "x": 24,
+    "y": 96,
+    "z": 220,
+    "height": 860,
+    "width": 1872,
+    "tabOrder": 220
+  },
+  "parentGroupName": "g1000000000000000001",
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Cómo leer este tablero",
+                    "textStyle": {
+                      "fontFamily": "Courier New",
+                      "fontSize": "22pt",
+                      "color": "#ffd700"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Este tablero cuenta las órdenes de La Smashiza. Los datos salen del Excel de órdenes. Hay cuatro páginas de trabajo y esta guía.\n\nAnálisis mira las ventas en un rango de fechas del calendario.\nDaily mira cómo cerró un turno, y lo compara con otro momento.\nClientes mira quién pide, cuánto gasta y cada una de sus órdenes.\nInventario dice qué comprar, con el stock, el mínimo y el ideal del Excel.\n\nEn cada página, los filtros de arriba recortan los números de abajo. Si un filtro queda sin fechas, se ve todo el historial de esa página.\n\nSiguiente abre la hoja que sigue. Anterior regresa. Las hojas son: cómo leerlo, cómo se conectan las tablas, las reglas fijas, Análisis, Daily, Clientes e Inventario.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "20pt",
+                      "color": "#f5e6c8"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

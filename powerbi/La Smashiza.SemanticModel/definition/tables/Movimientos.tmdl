@@ -1,0 +1,113 @@
+table Movimientos
+	lineageTag: 99203142-5364-4f67-0273-94a5b6c7d8e9
+
+	column Fecha
+		dataType: dateTime
+		formatString: dd/MM/yyyy
+		lineageTag: aa304253-6475-4078-1384-a5b6c7d8e9f0
+		summarizeBy: none
+		sourceColumn: Fecha
+
+		annotation SummarizationSetBy = User
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Hora
+		dataType: dateTime
+		formatString: hh:mm
+		lineageTag: bb415364-7586-4189-2495-b6c7d8e9f001
+		summarizeBy: none
+		sourceColumn: Hora
+
+		annotation SummarizationSetBy = User
+
+		annotation UnderlyingDateTimeDataType = Time
+
+	column Tipo
+		dataType: string
+		lineageTag: cc526475-8697-4290-35a6-c7d8e9f00112
+		summarizeBy: none
+		sourceColumn: Tipo
+
+		annotation SummarizationSetBy = User
+
+	column Ingrediente
+		dataType: string
+		lineageTag: dd637586-9708-43a1-46b7-d8e9f0011223
+		summarizeBy: none
+		sourceColumn: Ingrediente
+
+		annotation SummarizationSetBy = User
+
+	column Cantidad
+		dataType: double
+		formatString: #,0.00
+		lineageTag: ee748697-0819-44b2-57c8-e9f001122334
+		summarizeBy: sum
+		sourceColumn: Cantidad
+
+		annotation SummarizationSetBy = User
+
+	column Unidad
+		dataType: string
+		lineageTag: ff859708-1920-45c3-68d9-f00112233445
+		summarizeBy: none
+		sourceColumn: Unidad
+
+		annotation SummarizationSetBy = User
+
+	column Num_Orden
+		dataType: int64
+		formatString: 0
+		lineageTag: 0196a819-2031-46d4-79ea-011223344556
+		summarizeBy: none
+		sourceColumn: Num_Orden
+
+		annotation SummarizationSetBy = User
+
+	column Nota
+		dataType: string
+		lineageTag: 12a7b920-3142-47e5-8afb-122334455667
+		summarizeBy: none
+		sourceColumn: Nota
+
+		annotation SummarizationSetBy = User
+
+	column Ingrediente_Id
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: a1b2c3d4-3333-4a12-bd3e-4f5061728397
+		summarizeBy: none
+		sourceColumn: Ingrediente_Id
+
+		annotation SummarizationSetBy = User
+
+	partition Movimientos = m
+		mode: import
+		source =
+				let
+				  Source = Excel.Workbook(File.Contents("C:\Users\cjgz\OneDrive - Universidad Autonoma de Guadalajara\SMASHIZA\Smashiza Ordenes.xlsx"), null, true),
+				  Sheets = Table.SelectRows(Source, each [Item] = "Movimientos" and [Kind] = "Sheet"),
+				  Empty = #table(type table [Fecha = date, Hora = time, Tipo = text, Ingrediente = text, Cantidad = number, Unidad = text, Num_Orden = number, Nota = text], {}),
+				  Result = if Table.RowCount(Sheets) = 0 then Empty else
+				    let
+				      Data = Sheets{0}[Data],
+				      Promoted = Table.PromoteHeaders(Data, [PromoteAllScalars = true]),
+				      NullOrden = Table.ReplaceValue(Promoted, "", null, Replacer.ReplaceValue, {"Num_Orden"}),
+				      Typed = Table.TransformColumnTypes(NullOrden, {{"Fecha", type date}, {"Hora", type time}, {"Tipo", type text}, {"Ingrediente", type text}, {"Cantidad", type number}, {"Unidad", type text}, {"Num_Orden", Int64.Type}, {"Nota", type text}})
+				    in
+				      Typed,
+				  Clave = (v as any) as text => Text.Lower(Text.Trim(if v = null then "" else Text.From(v))),
+				  ConClave = Table.AddColumn(Result, "_IngredienteClave", each Clave([Ingrediente]), type text),
+				  InvBase = Table.SelectColumns(Inventario, {"Ingrediente_Id", "Nombre"}),
+				  InvClave = Table.AddColumn(InvBase, "_IngredienteClave", each Clave([Nombre]), type text),
+				  InvUnica = Table.Distinct(Table.SelectRows(Table.SelectColumns(InvClave, {"Ingrediente_Id", "_IngredienteClave"}), each [_IngredienteClave] <> ""), {"_IngredienteClave"}),
+				  MergeIng = Table.NestedJoin(ConClave, {"_IngredienteClave"}, InvUnica, {"_IngredienteClave"}, "InvMatch", JoinKind.LeftOuter),
+				  ExpandIng = Table.ExpandTableColumn(MergeIng, "InvMatch", {"Ingrediente_Id"}, {"Ingrediente_Id"}),
+				  Final = Table.RemoveColumns(ExpandIng, {"_IngredienteClave"})
+				in
+				  Final
+
+	annotation PBI_ResultType = Table
+

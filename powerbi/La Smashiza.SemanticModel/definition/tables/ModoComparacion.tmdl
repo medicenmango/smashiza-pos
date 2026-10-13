@@ -1,0 +1,39 @@
+table ModoComparacion
+	lineageTag: e401d001-1111-4aaa-9001-modo0000000001
+
+	column Modo
+		dataType: string
+		lineageTag: e401d001-1111-4aaa-9001-modo0000000002
+		summarizeBy: none
+		sourceColumn: [Modo]
+		sortByColumn: Orden
+
+		annotation SummarizationSetBy = User
+
+	column Orden
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: e401d001-1111-4aaa-9001-modo0000000003
+		summarizeBy: none
+		sourceColumn: [Orden]
+
+		annotation SummarizationSetBy = User
+
+	partition ModoComparacion = calculated
+		mode: import
+		source =
+				DATATABLE (
+				    "Modo", STRING,
+				    "Orden", INTEGER,
+				    {
+				        { "Día anterior", 1 },
+				        { "7 días antes", 2 },
+				        { "28 días antes", 3 },
+				        { "Periodo anterior", 4 },
+				        { "Manual", 5 }
+				    }
+				)
+
+	annotation PBI_ResultType = Table
+

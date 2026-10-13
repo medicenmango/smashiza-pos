@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+  "name": "t1000000000000000052",
+  "position": {
+    "x": 24,
+    "y": 96,
+    "z": 2000,
+    "height": 860,
+    "width": 1872,
+    "tabOrder": 2000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Para qué sirve",
+                    "textStyle": {
+                      "fontFamily": "Courier New",
+                      "fontSize": "22pt",
+                      "color": "#ffd700"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Para ver cómo cerró un turno, y qué tanto cambió contra otro momento.\n\nTurno es el rango de fechas de turno. Una orden de la 1:00 cuenta en el día anterior.\n\nComparar con ofrece día anterior, 7 días antes, 28 días antes, el período anterior de la misma longitud, o Manual.\n\nRango manual solo se usa cuando Comparar con está en Manual. Si ese rango queda vacío, no hay comparación.\n\nArriba hay cuatro números del turno: ventas, órdenes, ticket y unidades. Debajo de cada uno va el cambio contra lo elegido.\n\nEn medio: dinero por método de pago, turno contra la comparación, y los 8 productos con más unidades.\n\nAbajo: cada orden entregada, con hora, productos, pago y total.\n\nSolo entran órdenes entregadas.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "20pt",
+                      "color": "#f5e6c8"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "parentGroupName": "g1000000000000000005"
+}

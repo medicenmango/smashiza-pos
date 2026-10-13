@@ -1,0 +1,88 @@
+table Recetas
+	lineageTag: 44d5e6f7-0819-4a12-bd3e-4f5061728394
+
+	column Producto
+		dataType: string
+		lineageTag: 55e6f708-1920-4b23-ce4f-5061728394a5
+		summarizeBy: none
+		sourceColumn: Producto
+
+		annotation SummarizationSetBy = User
+
+	column Ingrediente
+		dataType: string
+		lineageTag: 66f70819-2031-4c34-df50-61728394a5b6
+		summarizeBy: none
+		sourceColumn: Ingrediente
+
+		annotation SummarizationSetBy = User
+
+	column Cantidad
+		dataType: double
+		formatString: #,0.00
+		lineageTag: 77081920-3142-4d45-e061-728394a5b6c7
+		summarizeBy: sum
+		sourceColumn: Cantidad
+
+		annotation SummarizationSetBy = User
+
+	column Unidad
+		dataType: string
+		lineageTag: 88192031-4253-4e56-f172-8394a5b6c7d8
+		summarizeBy: none
+		sourceColumn: Unidad
+
+		annotation SummarizationSetBy = User
+
+	column Producto_Id
+		dataType: string
+		isHidden
+		lineageTag: a1b2c3d4-1111-4a12-bd3e-4f5061728395
+		summarizeBy: none
+		sourceColumn: Producto_Id
+
+		annotation SummarizationSetBy = User
+
+	column Ingrediente_Id
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: a1b2c3d4-2222-4a12-bd3e-4f5061728396
+		summarizeBy: none
+		sourceColumn: Ingrediente_Id
+
+		annotation SummarizationSetBy = User
+
+	partition Recetas = m
+		mode: import
+		source =
+				let
+				  Source = Excel.Workbook(File.Contents("C:\Users\cjgz\OneDrive - Universidad Autonoma de Guadalajara\SMASHIZA\Smashiza Ordenes.xlsx"), null, true),
+				  Sheets = Table.SelectRows(Source, each [Item] = "Recetas" and [Kind] = "Sheet"),
+				  Empty = #table(type table [Producto = text, Ingrediente = text, Cantidad = number, Unidad = text], {}),
+				  Base = if Table.RowCount(Sheets) = 0 then Empty else
+				    let
+				      Data = Sheets{0}[Data],
+				      Promoted = Table.PromoteHeaders(Data, [PromoteAllScalars = true]),
+				      Typed = Table.TransformColumnTypes(Promoted, {{"Producto", type text}, {"Ingrediente", type text}, {"Cantidad", type number}, {"Unidad", type text}})
+				    in
+				      Typed,
+				  Clave = (v as any) as text => Text.Lower(Text.Trim(if v = null then "" else Text.From(v))),
+				  ConClaveProd = Table.AddColumn(Base, "_ProductoClave", each Clave([Producto]), type text),
+				  MenuBase = Table.SelectColumns(Menu, {"Id", "Nombre"}),
+				  MenuClave = Table.AddColumn(MenuBase, "_ProductoClave", each Clave([Nombre]), type text),
+				  MenuUnica = Table.Distinct(Table.SelectRows(Table.SelectColumns(MenuClave, {"Id", "_ProductoClave"}), each [_ProductoClave] <> ""), {"_ProductoClave"}),
+				  MergeProd = Table.NestedJoin(ConClaveProd, {"_ProductoClave"}, MenuUnica, {"_ProductoClave"}, "MenuMatch", JoinKind.LeftOuter),
+				  ExpandProd = Table.ExpandTableColumn(MergeProd, "MenuMatch", {"Id"}, {"Producto_Id"}),
+				  ConClaveIng = Table.AddColumn(ExpandProd, "_IngredienteClave", each Clave([Ingrediente]), type text),
+				  InvBase = Table.SelectColumns(Inventario, {"Ingrediente_Id", "Nombre"}),
+				  InvClave = Table.AddColumn(InvBase, "_IngredienteClave", each Clave([Nombre]), type text),
+				  InvUnica = Table.Distinct(Table.SelectRows(Table.SelectColumns(InvClave, {"Ingrediente_Id", "_IngredienteClave"}), each [_IngredienteClave] <> ""), {"_IngredienteClave"}),
+				  MergeIng = Table.NestedJoin(ConClaveIng, {"_IngredienteClave"}, InvUnica, {"_IngredienteClave"}, "InvMatch", JoinKind.LeftOuter),
+				  ExpandIng = Table.ExpandTableColumn(MergeIng, "InvMatch", {"Ingrediente_Id"}, {"Ingrediente_Id"}),
+				  Final = Table.RemoveColumns(ExpandIng, {"_ProductoClave", "_IngredienteClave"})
+				in
+				  Final
+
+	annotation PBI_ResultType = Table
+

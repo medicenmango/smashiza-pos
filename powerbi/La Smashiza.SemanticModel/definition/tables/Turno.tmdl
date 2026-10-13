@@ -1,0 +1,27 @@
+table Turno
+	lineageTag: e201b001-1111-4aaa-9001-turno000000001
+	dataCategory: Time
+
+	column Fecha
+		dataType: dateTime
+		isKey
+		formatString: dd/MM/yyyy
+		lineageTag: e201b001-1111-4aaa-9001-turno000000002
+		dataCategory: PaddedDateTableDates
+		summarizeBy: none
+		sourceColumn: [Fecha]
+
+		annotation SummarizationSetBy = User
+
+	partition Turno = calculated
+		mode: import
+		source =
+				VAR MinF = MIN ( Ordenes[Fecha_Turno] )
+				VAR MaxF = MAX ( Ordenes[Fecha_Turno] )
+				VAR Inicio = IF ( ISBLANK ( MinF ), DATE ( YEAR ( TODAY () ), 1, 1 ), DATE ( YEAR ( MinF ) - 1, 1, 1 ) )
+				VAR Fin = IF ( ISBLANK ( MaxF ), DATE ( YEAR ( TODAY () ), 12, 31 ), DATE ( YEAR ( MaxF ), 12, 31 ) )
+				RETURN
+				    SELECTCOLUMNS ( CALENDAR ( Inicio, Fin ), "Fecha", [Date] )
+
+	annotation PBI_ResultType = Table
+

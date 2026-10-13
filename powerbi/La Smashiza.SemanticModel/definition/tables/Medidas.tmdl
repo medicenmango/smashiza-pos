@@ -1,0 +1,267 @@
+table Medidas
+	lineageTag: cd6264db-4253-4290-35a6-ccddeeff0123
+
+	measure Ventas = CALCULATE ( SUM ( Ordenes[Total] ), Ordenes[Estado] <> "Cancelada" )
+		formatString: #,0.000
+		displayFolder: Ventas
+		lineageTag: ef8486fd-6475-44b2-57c8-eeff01234567
+
+	measure 'Ordenes Vendidas' = CALCULATE ( DISTINCTCOUNT ( Ordenes[Num_Orden] ), Ordenes[Estado] <> "Cancelada" )
+		formatString: #,0
+		displayFolder: Ventas
+		lineageTag: f095970e-7586-45c3-68d9-ff0123456789
+
+	measure 'Ticket Promedio' = DIVIDE ( [Ventas], [Ordenes Vendidas] )
+		formatString: \$#,0
+		displayFolder: Ventas
+		lineageTag: 01a6a81f-8697-46d4-79ea-0123456789ab
+
+	measure 'Ordenes Canceladas' = CALCULATE ( DISTINCTCOUNT ( Ordenes[Num_Orden] ), Ordenes[Estado] = "Cancelada" )
+		formatString: #,0
+		displayFolder: Ventas
+		lineageTag: 12b7b920-9708-47e5-8afb-123456789abc
+
+	measure Unidades = CALCULATE ( SUM ( OrdenDetalle[Cantidad] ), Ordenes[Estado] <> "Cancelada" )
+		formatString: #,0
+		displayFolder: Productos
+		lineageTag: 23c8ca31-0819-48f6-9b0c-23456789abcd
+
+	measure 'Ventas Catalogo' =
+			CALCULATE (
+			    SUMX ( OrdenDetalle, OrdenDetalle[Cantidad] * RELATED ( Menu[Precio] ) ),
+			    Ordenes[Estado] <> "Cancelada"
+			)
+		formatString: \$#,0
+		displayFolder: Productos
+		lineageTag: 34d9db42-1920-49a7-ac1d-3456789abcde
+
+	measure 'Clientes Unicos' =
+			CALCULATE (
+			    DISTINCTCOUNT ( Ordenes[Cliente_Key] ),
+			    Ordenes[Estado] <> "Cancelada",
+			    NOT ISBLANK ( Ordenes[Cliente] ),
+			    Ordenes[Cliente] <> ""
+			)
+		formatString: #,0
+		displayFolder: Clientes
+		lineageTag: 45eaec53-2031-4ab8-bd2e-456789abcdef
+
+	measure 'Stock Bajo' = COUNTROWS ( FILTER ( Inventario, Inventario[Stock] < Inventario[Minimo] ) )
+		formatString: #,0
+		displayFolder: Inventario
+		lineageTag: 56fbfd64-3142-4bc9-ce3f-56789abcdef0
+
+	measure 'Ventas Entregadas' = CALCULATE ( SUM ( Ordenes[Total] ), Ordenes[Estado] = "Entregada" )
+		formatString: \$#,0
+		displayFolder: Daily
+		lineageTag: d101a001-0001-4aaa-8001-daily00000001
+
+	measure 'Ordenes Entregadas' = CALCULATE ( DISTINCTCOUNT ( Ordenes[Num_Orden] ), Ordenes[Estado] = "Entregada" )
+		formatString: #,0
+		displayFolder: Daily
+		lineageTag: d101a001-0002-4aaa-8002-daily00000002
+
+	measure 'Ticket Entregado' = DIVIDE ( [Ventas Entregadas], [Ordenes Entregadas] )
+		formatString: \$#,0.00
+		displayFolder: Daily
+		lineageTag: d101a001-0003-4aaa-8003-daily00000003
+
+	measure 'Unidades Entregadas' = CALCULATE ( SUM ( OrdenDetalle[Cantidad] ), Ordenes[Estado] = "Entregada" )
+		formatString: #,0
+		displayFolder: Daily
+		lineageTag: d101a001-0004-4aaa-8004-daily00000004
+
+	measure 'Ventas Comparadas' =
+			VAR Modo = SELECTEDVALUE ( ModoComparacion[Modo], "Día anterior" )
+			VAR Inicio = MIN ( Turno[Fecha] )
+			VAR Fin = MAX ( Turno[Fecha] )
+			VAR Dias = DATEDIFF ( Inicio, Fin, DAY ) + 1
+			VAR ManualTodo = COUNTROWS ( VALUES ( Comparar[Fecha] ) ) = COUNTROWS ( ALL ( Comparar[Fecha] ) )
+			RETURN
+			SWITCH (
+			    TRUE (),
+			    ISBLANK ( Inicio ), BLANK (),
+			    Modo = "Manual" && ManualTodo, BLANK (),
+			    Modo = "Manual",
+			        CALCULATE (
+			            [Ventas Entregadas],
+			            REMOVEFILTERS ( Turno ),
+			            TREATAS ( VALUES ( Comparar[Fecha] ), Turno[Fecha] )
+			        ),
+			    Modo = "7 días antes", CALCULATE ( [Ventas Entregadas], DATEADD ( Turno[Fecha], -7, DAY ) ),
+			    Modo = "28 días antes", CALCULATE ( [Ventas Entregadas], DATEADD ( Turno[Fecha], -28, DAY ) ),
+			    Modo = "Periodo anterior", CALCULATE ( [Ventas Entregadas], DATEADD ( Turno[Fecha], -Dias, DAY ) ),
+			    CALCULATE ( [Ventas Entregadas], DATEADD ( Turno[Fecha], -1, DAY ) )
+			)
+		formatString: \$#,0
+		displayFolder: Daily
+		lineageTag: d101a001-0005-4aaa-8005-daily00000005
+
+	measure 'Ordenes Comparadas' =
+			VAR Modo = SELECTEDVALUE ( ModoComparacion[Modo], "Día anterior" )
+			VAR Inicio = MIN ( Turno[Fecha] )
+			VAR Fin = MAX ( Turno[Fecha] )
+			VAR Dias = DATEDIFF ( Inicio, Fin, DAY ) + 1
+			VAR ManualTodo = COUNTROWS ( VALUES ( Comparar[Fecha] ) ) = COUNTROWS ( ALL ( Comparar[Fecha] ) )
+			RETURN
+			SWITCH (
+			    TRUE (),
+			    ISBLANK ( Inicio ), BLANK (),
+			    Modo = "Manual" && ManualTodo, BLANK (),
+			    Modo = "Manual",
+			        CALCULATE (
+			            [Ordenes Entregadas],
+			            REMOVEFILTERS ( Turno ),
+			            TREATAS ( VALUES ( Comparar[Fecha] ), Turno[Fecha] )
+			        ),
+			    Modo = "7 días antes", CALCULATE ( [Ordenes Entregadas], DATEADD ( Turno[Fecha], -7, DAY ) ),
+			    Modo = "28 días antes", CALCULATE ( [Ordenes Entregadas], DATEADD ( Turno[Fecha], -28, DAY ) ),
+			    Modo = "Periodo anterior", CALCULATE ( [Ordenes Entregadas], DATEADD ( Turno[Fecha], -Dias, DAY ) ),
+			    CALCULATE ( [Ordenes Entregadas], DATEADD ( Turno[Fecha], -1, DAY ) )
+			)
+		formatString: #,0
+		displayFolder: Daily
+		lineageTag: d101a001-0006-4aaa-8006-daily00000006
+
+	measure 'Unidades Comparadas' =
+			VAR Modo = SELECTEDVALUE ( ModoComparacion[Modo], "Día anterior" )
+			VAR Inicio = MIN ( Turno[Fecha] )
+			VAR Fin = MAX ( Turno[Fecha] )
+			VAR Dias = DATEDIFF ( Inicio, Fin, DAY ) + 1
+			VAR ManualTodo = COUNTROWS ( VALUES ( Comparar[Fecha] ) ) = COUNTROWS ( ALL ( Comparar[Fecha] ) )
+			RETURN
+			SWITCH (
+			    TRUE (),
+			    ISBLANK ( Inicio ), BLANK (),
+			    Modo = "Manual" && ManualTodo, BLANK (),
+			    Modo = "Manual",
+			        CALCULATE (
+			            [Unidades Entregadas],
+			            REMOVEFILTERS ( Turno ),
+			            TREATAS ( VALUES ( Comparar[Fecha] ), Turno[Fecha] )
+			        ),
+			    Modo = "7 días antes", CALCULATE ( [Unidades Entregadas], DATEADD ( Turno[Fecha], -7, DAY ) ),
+			    Modo = "28 días antes", CALCULATE ( [Unidades Entregadas], DATEADD ( Turno[Fecha], -28, DAY ) ),
+			    Modo = "Periodo anterior", CALCULATE ( [Unidades Entregadas], DATEADD ( Turno[Fecha], -Dias, DAY ) ),
+			    CALCULATE ( [Unidades Entregadas], DATEADD ( Turno[Fecha], -1, DAY ) )
+			)
+		formatString: #,0
+		displayFolder: Daily
+		lineageTag: d101a001-0007-4aaa-8007-daily00000007
+
+	measure 'Ticket Comparado' = DIVIDE ( [Ventas Comparadas], [Ordenes Comparadas] )
+		formatString: \$#,0.00
+		displayFolder: Daily
+		lineageTag: d101a001-0008-4aaa-8008-daily00000008
+
+	measure 'Delta Ventas' = [Ventas Entregadas] - [Ventas Comparadas]
+		formatString: +\$#,0;-\$#,0;\$#,0
+		displayFolder: Daily
+		lineageTag: d101a001-0009-4aaa-8009-daily00000009
+
+	measure 'Delta Ventas %' = DIVIDE ( [Delta Ventas], [Ventas Comparadas] )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Daily
+		lineageTag: d101a001-0010-4aaa-8010-daily00000010
+
+	measure 'Delta Ordenes' = [Ordenes Entregadas] - [Ordenes Comparadas]
+		formatString: +#,0;-#,0;#,0
+		displayFolder: Daily
+		lineageTag: d101a001-0011-4aaa-8011-daily00000011
+
+	measure 'Delta Ordenes %' = DIVIDE ( [Delta Ordenes], [Ordenes Comparadas] )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Daily
+		lineageTag: d101a001-0012-4aaa-8012-daily00000012
+
+	measure 'Delta Ticket' = [Ticket Entregado] - [Ticket Comparado]
+		formatString: +\$#,0.00;-\$#,0.00;\$#,0.00
+		displayFolder: Daily
+		lineageTag: d101a001-0013-4aaa-8013-daily00000013
+
+	measure 'Delta Ticket %' = DIVIDE ( [Delta Ticket], [Ticket Comparado] )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Daily
+		lineageTag: d101a001-0014-4aaa-8014-daily00000014
+
+	measure 'Delta Unidades' = [Unidades Entregadas] - [Unidades Comparadas]
+		formatString: +#,0;-#,0;#,0
+		displayFolder: Daily
+		lineageTag: d101a001-0015-4aaa-8015-daily00000015
+
+	measure 'Delta Unidades %' = DIVIDE ( [Delta Unidades], [Unidades Comparadas] )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Daily
+		lineageTag: d101a001-0016-4aaa-8016-daily00000016
+
+	measure 'No vendidos' =
+			VAR Lista =
+			    CONCATENATEX (
+			        FILTER ( ALL ( Menu ), [Unidades Entregadas] = 0 && Menu[Categoria] <> "Retirado" ),
+			        Menu[Categoria] & " · " & Menu[Nombre],
+			        UNICHAR ( 10 ),
+			        Menu[Categoria], ASC,
+			        Menu[Nombre], ASC
+			    )
+			RETURN
+			    IF ( Lista = "", "Todo el menú se vendió", Lista )
+		displayFolder: Daily
+		lineageTag: d101a001-0017-4aaa-8017-daily00000017
+
+	measure 'Total Clientes' =
+			CALCULATE (
+			    DISTINCTCOUNT ( Ordenes[Cliente_Key] ),
+			    Ordenes[Estado] <> "Cancelada"
+			)
+		formatString: #,0
+		displayFolder: Clientes
+		lineageTag: d101a001-0018-4aaa-8018-clientes000018
+
+	measure 'Días sin pedir' =
+			VAR Ultima = MAX ( Ordenes[Fecha] )
+			RETURN
+			    IF ( ISBLANK ( Ultima ), BLANK (), DATEDIFF ( Ultima, TODAY (), DAY ) )
+		formatString: #,0
+		displayFolder: Clientes
+		lineageTag: d101a001-0019-4aaa-8019-clientes000019
+
+	measure 'Producto favorito' =
+			VAR Elegido =
+			    TOPN (
+			        1,
+			        FILTER ( VALUES ( Menu[Nombre] ), [Unidades] > 0 ),
+			        [Unidades], DESC,
+			        Menu[Nombre], ASC
+			    )
+			RETURN
+			    CONCATENATEX ( Elegido, Menu[Nombre], ", " )
+		displayFolder: Clientes
+		lineageTag: d101a001-0020-4aaa-8020-clientes000020
+
+	measure 'Por comprar' =
+			COUNTROWS (
+			    FILTER (
+			        Inventario,
+			        Inventario[Estado] = "Comprar ya" || Inventario[Estado] = "Reponer"
+			    )
+			)
+		formatString: #,0
+		displayFolder: Inventario
+		lineageTag: d101a001-0021-4aaa-8021-inventario0021
+
+	column _dummy
+		dataType: int64
+		isHidden
+		lineageTag: de7375ec-5364-43a1-46b7-ddeeff012345
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [_dummy]
+
+		annotation SummarizationSetBy = User
+
+	partition Medidas = calculated
+		mode: import
+		source = ROW ( "_dummy", 1 )
+
+	annotation PBI_ResultType = Table
+

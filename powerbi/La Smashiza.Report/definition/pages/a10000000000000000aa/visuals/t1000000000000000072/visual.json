@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "t1000000000000000072",
+  "position": {
+    "x": 24,
+    "y": 96,
+    "z": 220,
+    "height": 860,
+    "width": 1872,
+    "tabOrder": 220
+  },
+  "parentGroupName": "g1000000000000000007",
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Para qué sirve",
+                    "textStyle": {
+                      "fontFamily": "Courier New",
+                      "fontSize": "22pt",
+                      "color": "#ffd700"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Para ver, en el súper, qué ingredientes comprar y cuántos.\n\nEl stock, el mínimo y el ideal salen de la hoja Inventario del Excel. Es la cantidad escrita ahí. Un movimiento no cambia ese número. Hay que actualizar el stock en el Excel y refrescar el tablero.\n\nSi el stock está vacío, cuenta como cero.\n\nComprar ya: el stock está debajo del mínimo.\nReponer: ya pasó el mínimo y todavía no llega al ideal.\nOk: llegó al ideal.\nSin meta: no tiene mínimo ni ideal.\n\nA comprar es lo que falta para llegar al ideal. Si no hay ideal, es lo que falta para llegar al mínimo.\n\nLa página abre en Comprar ya y Reponer. Proveedor recorta la lista a esa tienda. En Lista se puede ver también lo que ya está bien.\n\nEsta lista no se mueve con las ventas. Filtrar un producto no cambia el inventario.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "fontSize": "20pt",
+                      "color": "#f5e6c8"
+                    }
+                  }
+                ],
+                "horizontalTextAlignment": "left"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

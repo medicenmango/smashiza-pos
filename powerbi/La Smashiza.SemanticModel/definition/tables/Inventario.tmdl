@@ -1,0 +1,138 @@
+table Inventario
+	lineageTag: 3f972ad0-2d86-4426-8b04-e3c81ddd8adb
+
+	column Nombre
+		dataType: string
+		lineageTag: a11dd24e-3ec8-4ad7-b6fe-b45366c05c8b
+		summarizeBy: none
+		sourceColumn: Nombre
+
+		annotation SummarizationSetBy = Automatic
+
+	column Unidad
+		dataType: string
+		lineageTag: d301ef6d-2dc6-4fb2-ba0d-3f5a6809ccce
+		summarizeBy: none
+		sourceColumn: Unidad
+
+		annotation SummarizationSetBy = Automatic
+
+	column Stock
+		dataType: int64
+		formatString: #,0
+		lineageTag: 077063e9-5780-4572-88cc-97abef6cf839
+		summarizeBy: sum
+		sourceColumn: Stock
+
+		annotation SummarizationSetBy = User
+
+	column Minimo
+		dataType: int64
+		formatString: #,0
+		lineageTag: 2258c7fa-4393-4b0c-ad4c-43bde6bca3f8
+		summarizeBy: sum
+		sourceColumn: Minimo
+
+		annotation SummarizationSetBy = User
+
+	column Ideal
+		dataType: int64
+		formatString: #,0
+		lineageTag: 589fe187-131d-4f42-8c10-4da342073b44
+		summarizeBy: sum
+		sourceColumn: Ideal
+
+		annotation SummarizationSetBy = User
+
+	column Proveedor
+		dataType: string
+		lineageTag: 7bd46326-2fc9-4f72-bbf3-cae7bf639279
+		summarizeBy: none
+		sourceColumn: Proveedor
+
+		annotation SummarizationSetBy = Automatic
+
+	column Nota
+		dataType: string
+		lineageTag: a744962c-effa-481a-ad02-c519da050e09
+		summarizeBy: none
+		sourceColumn: Nota
+
+		annotation SummarizationSetBy = Automatic
+
+	column Ingrediente_Id
+		dataType: int64
+		isHidden
+		isKey
+		formatString: 0
+		lineageTag: b22ee35f-4fd9-4be8-c70f-c56477d16d9c
+		summarizeBy: none
+		sourceColumn: Ingrediente_Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'A comprar' =
+			VAR Actual = IF ( ISBLANK ( Inventario[Stock] ), 0, Inventario[Stock] )
+			VAR Meta =
+			    IF (
+			        NOT ISBLANK ( Inventario[Ideal] ),
+			        Inventario[Ideal],
+			        Inventario[Minimo]
+			    )
+			RETURN
+			    IF ( ISBLANK ( Meta ), BLANK (), IF ( Actual < Meta, Meta - Actual, BLANK () ) )
+		dataType: int64
+		formatString: #,0
+		lineageTag: e21a0001-0001-4aaa-8001-inventario0001
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+	column EstadoOrden =
+			VAR Actual = IF ( ISBLANK ( Inventario[Stock] ), 0, Inventario[Stock] )
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( Inventario[Minimo] ) && ISBLANK ( Inventario[Ideal] ), 4,
+			        NOT ISBLANK ( Inventario[Minimo] ) && Actual < Inventario[Minimo], 1,
+			        NOT ISBLANK ( Inventario[Ideal] ) && Actual < Inventario[Ideal], 2,
+			        3
+			    )
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: e21a0001-0003-4aaa-8003-inventario0003
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+	column Estado =
+			SWITCH (
+			    Inventario[EstadoOrden],
+			    1, "Comprar ya",
+			    2, "Reponer",
+			    4, "Sin meta",
+			    "Ok"
+			)
+		dataType: string
+		lineageTag: e21a0001-0002-4aaa-8002-inventario0002
+		summarizeBy: none
+		sortByColumn: EstadoOrden
+
+		annotation SummarizationSetBy = User
+
+	partition Inventario = m
+		mode: import
+		source =
+				let
+				  Source = Excel.Workbook(File.Contents("C:\Users\cjgz\OneDrive - Universidad Autonoma de Guadalajara\SMASHIZA\Smashiza Ordenes.xlsx"), null, true),
+				  #"Navigation 1" = Source{[Item = "Inventario", Kind = "Sheet"]}[Data],
+				  #"Promoted headers" = Table.PromoteHeaders(#"Navigation 1", [PromoteAllScalars = true]),
+				  #"Changed column type" = Table.TransformColumnTypes(#"Promoted headers", {{"Nombre", type text}, {"Unidad", type text}, {"Stock", Int64.Type}, {"Minimo", Int64.Type}, {"Ideal", Int64.Type}, {"Proveedor", type text}, {"Nota", type text}}),
+				  #"Sorted rows" = Table.Sort(#"Changed column type", {{"Nombre", Order.Ascending}}),
+				  #"Added Ingrediente_Id" = Table.AddIndexColumn(#"Sorted rows", "Ingrediente_Id", 1, 1, Int64.Type)
+				in
+				  #"Added Ingrediente_Id"
+
+	annotation PBI_ResultType = Table
+

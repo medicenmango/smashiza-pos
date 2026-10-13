@@ -1,0 +1,65 @@
+table Clientes
+	lineageTag: 23b8ca31-4253-48f6-9b0c-233445566778
+
+	column Cliente_Key
+		dataType: string
+		isHidden
+		lineageTag: 34c9db42-5364-4907-ac1d-344556677889
+		summarizeBy: none
+		sourceColumn: Cliente_Key
+
+		annotation SummarizationSetBy = User
+
+	column Cliente
+		dataType: string
+		lineageTag: 45daec53-6475-4a18-bd2e-45566778899a
+		summarizeBy: none
+		sourceColumn: Cliente
+
+		annotation SummarizationSetBy = User
+
+	column Direccion
+		dataType: string
+		lineageTag: 56ebfd64-7586-4b29-ce3f-566778899aab
+		summarizeBy: none
+		sourceColumn: Direccion
+
+		annotation SummarizationSetBy = User
+
+	column 'Cliente Direccion' =
+			VAR Nombre =
+			    IF ( ISBLANK ( Clientes[Cliente] ) || Clientes[Cliente] = "", "Sin nombre", Clientes[Cliente] )
+			VAR Dir = Clientes[Direccion]
+			RETURN
+			    IF ( ISBLANK ( Dir ) || Dir = "", Nombre, Nombre & " · " & Dir )
+		dataType: string
+		lineageTag: 67fc0e75-8697-4c3a-df40-6778899aabbc
+		summarizeBy: none
+
+		annotation SummarizationSetBy = User
+
+	partition Clientes = m
+		mode: import
+		source =
+				let
+				  Source = Excel.Workbook(File.Contents("C:\Users\cjgz\OneDrive - Universidad Autonoma de Guadalajara\SMASHIZA\Smashiza Ordenes.xlsx"), null, true),
+				  #"Navigation 1" = Source{[Item = "Ordenes", Kind = "Sheet"]}[Data],
+				  #"Promoted headers" = Table.PromoteHeaders(#"Navigation 1", [PromoteAllScalars = true]),
+				  Keep = Table.SelectColumns(#"Promoted headers", {"Cliente", "Direccion"}),
+				  Key = Table.AddColumn(Keep, "Cliente_Key", each (if [Cliente] = null then "" else Text.Trim(Text.From([Cliente]))) & "|" & (if [Direccion] = null then "" else Text.Trim(Text.From([Direccion]))), type text),
+				  Etiqueta = Table.AddColumn(Key, "ClienteEtiqueta", each
+				    let
+				      n = if [Cliente] = null then "" else Text.Trim(Text.From([Cliente])),
+				      d = if [Direccion] = null then "" else Text.Trim(Text.From([Direccion]))
+				    in
+				      if n <> "" then n else "Sin nombre",
+				    type text),
+				  SinOriginal = Table.RemoveColumns(Etiqueta, {"Cliente"}),
+				  Renombrado = Table.RenameColumns(SinOriginal, {{"ClienteEtiqueta", "Cliente"}}),
+				  DireccionLimpia = Table.TransformColumns(Renombrado, {{"Direccion", each if _ = null then "" else Text.Trim(Text.From(_)), type text}}),
+				  Distinct = Table.Distinct(DireccionLimpia, {"Cliente_Key"})
+				in
+				  Distinct
+
+	annotation PBI_ResultType = Table
+

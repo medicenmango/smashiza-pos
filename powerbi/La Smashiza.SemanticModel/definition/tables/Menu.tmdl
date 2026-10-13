@@ -1,0 +1,87 @@
+table Menu
+	lineageTag: 7d36fa34-d11d-4bff-bc13-ef742cca693e
+
+	column Id
+		dataType: string
+		isKey
+		lineageTag: 25b5e203-53c4-41c0-8331-4e35da6d803a
+		summarizeBy: none
+		sourceColumn: Id
+
+		annotation SummarizationSetBy = Automatic
+
+	column Categoria
+		dataType: string
+		lineageTag: 93a8dee7-7194-44a8-ae31-eb64a2a1e4e3
+		summarizeBy: none
+		sourceColumn: Categoria
+
+		annotation SummarizationSetBy = Automatic
+
+	column Emoji
+		dataType: string
+		lineageTag: d73d72a4-cece-4253-a17d-846cd83a9575
+		summarizeBy: none
+		sourceColumn: Emoji
+
+		annotation SummarizationSetBy = Automatic
+
+	column Nombre
+		dataType: string
+		lineageTag: 37114b93-d82b-44d9-b205-7a062c05b882
+		summarizeBy: none
+		sourceColumn: Nombre
+
+		annotation SummarizationSetBy = Automatic
+
+	column Precio
+		dataType: int64
+		formatString: \$#,0
+		lineageTag: bd20a6bd-84f6-4605-a3c9-8ae3d25e0a95
+		summarizeBy: none
+		sourceColumn: Precio
+
+		annotation SummarizationSetBy = User
+
+	column Orden
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: e24a9743-5fc5-47f1-9b4a-488f87d7c1c9
+		summarizeBy: none
+		sourceColumn: Orden
+
+		annotation SummarizationSetBy = User
+
+	partition Menu = m
+		mode: import
+		source =
+				let
+				  Source = Excel.Workbook(File.Contents("C:\Users\cjgz\OneDrive - Universidad Autonoma de Guadalajara\SMASHIZA\Smashiza Ordenes.xlsx"), null, true),
+				  #"Navigation 1" = Source{[Item = "Menu", Kind = "Sheet"]}[Data],
+				  #"Promoted headers" = Table.PromoteHeaders(#"Navigation 1", [PromoteAllScalars = true]),
+				  MenuTyped = Table.TransformColumnTypes(#"Promoted headers", {{"Id", type text}, {"Categoria", type text}, {"Emoji", type text}, {"Nombre", type text}, {"Precio", Int64.Type}, {"Orden", Int64.Type}}),
+				  MenuCols = Table.SelectColumns(MenuTyped, {"Id", "Categoria", "Emoji", "Nombre", "Precio", "Orden"}),
+				  OrdenNav = Source{[Item = "Ordenes", Kind = "Sheet"]}[Data],
+				  OrdenHeaders = Table.PromoteHeaders(OrdenNav, [PromoteAllScalars = true]),
+				  SoloProd = Table.SelectColumns(OrdenHeaders, {"Productos"}),
+				  Split = Table.AddColumn(SoloProd, "Nombre", each if [Productos] = null then {} else Text.Split(Text.From([Productos]), " | ")),
+				  Expand = Table.ExpandListColumn(Split, "Nombre"),
+				  Trimmed = Table.TransformColumns(Expand, {{"Nombre", each Text.Trim(if _ = null then "" else Text.From(_)), type text}}),
+				  NonEmpty = Table.SelectRows(Trimmed, each [Nombre] <> ""),
+				  ConClave = Table.AddColumn(NonEmpty, "Clave", each Text.Lower([Nombre]), type text),
+				  Primera = Table.Distinct(Table.SelectColumns(ConClave, {"Nombre", "Clave"}), {"Clave"}),
+				  MenuClave = Table.AddColumn(MenuCols, "Clave", each Text.Lower(Text.Trim(if [Nombre] = null then "" else Text.From([Nombre]))), type text),
+				  Faltantes = Table.NestedJoin(Primera, {"Clave"}, Table.SelectRows(MenuClave, each [Clave] <> ""), {"Clave"}, "EnMenu", JoinKind.LeftAnti),
+				  ConId = Table.AddColumn(Table.SelectColumns(Faltantes, {"Nombre", "Clave"}), "Id", each "retirado|" & [Clave], type text),
+				  ConCat = Table.AddColumn(ConId, "Categoria", each "Retirado", type text),
+				  ConEmoji = Table.AddColumn(ConCat, "Emoji", each null, type text),
+				  ConPrecio = Table.AddColumn(ConEmoji, "Precio", each null, Int64.Type),
+				  ConOrden = Table.AddColumn(ConPrecio, "Orden", each 9999, Int64.Type),
+				  Historicos = Table.SelectColumns(ConOrden, {"Id", "Categoria", "Emoji", "Nombre", "Precio", "Orden"}),
+				  Combinado = Table.Combine({MenuCols, Historicos})
+				in
+				  Combinado
+
+	annotation PBI_ResultType = Exception
+
