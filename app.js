@@ -100,6 +100,43 @@ let persistMenuTimer=null;
 function pad(n)  { return String(n).padStart(2,'0'); }
 function fmtDate(d=new Date()){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function fmtTime(d=new Date()){ return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+function toYmd(v){
+  if(v==null||v==='') return '';
+  if(v instanceof Date && !isNaN(v)) return fmtDate(v);
+  if(typeof v==='number' && isFinite(v)){
+    if(v>20000 && v<80000){
+      const d=new Date(Math.round((v-25569)*86400*1000));
+      return isNaN(d)?'':fmtDate(d);
+    }
+    return '';
+  }
+  const s=String(v).trim();
+  const iso=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const dmy=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/);
+  if(dmy) return `${dmy[3]}-${pad(+dmy[2])}-${pad(+dmy[1])}`;
+  const d=new Date(s);
+  return isNaN(d)?'':fmtDate(d);
+}
+function toHms(v){
+  if(v==null||v==='') return '';
+  if(typeof v==='number' && isFinite(v) && v>=0 && v<2){
+    const secs=Math.round((v%1)*86400);
+    return `${pad(Math.floor(secs/3600)%24)}:${pad(Math.floor((secs%3600)/60))}:${pad(secs%60)}`;
+  }
+  if(v instanceof Date && !isNaN(v)) return fmtTime(v);
+  const s=String(v).trim();
+  const m=s.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if(m) return `${pad(+m[1])}:${m[2]}:${m[3]||'00'}`;
+  return '';
+}
+function stampNewOrderWhen(){
+  const now=new Date();
+  const f=document.getElementById('f-fecha');
+  const h=document.getElementById('f-hora');
+  if(f) f.value=fmtDate(now);
+  if(h) h.value=`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
 function fmtMoney(n){ return '$'+Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
 function peso(n){ return Math.round(Number(n)||0); }
 function parsePesoOptional(v){
@@ -449,7 +486,11 @@ async function persistMenuCatalog(immediate){
 }
 function parseOrders(wb){
   const ws=wb.Sheets[state.sheetName]; if(!ws) return [];
-  return XLSX.utils.sheet_to_json(ws,{defval:''});
+  return XLSX.utils.sheet_to_json(ws,{defval:''}).map(o=>{
+    const ymd=toYmd(o['Fecha']); if(ymd) o['Fecha']=ymd;
+    const hms=toHms(o['Hora']); if(hms) o['Hora']=hms;
+    return o;
+  });
 }
 function getNextOrderNum(orders){
   if(!orders.length) return 1;
@@ -570,7 +611,11 @@ function initNav(){
       if(!tab) return;
       tab.classList.remove('hidden'); tab.classList.add('active');
       if(btn.dataset.tab==='tab-dashboard') refreshDashboard();
-      if(btn.dataset.tab==='tab-nueva-orden') renderLiveQueue();
+      if(btn.dataset.tab==='tab-nueva-orden'){
+        renderLiveQueue();
+        const f=document.getElementById('f-fecha');
+        if(f && !f.value) stampNewOrderWhen();
+      }
       if(btn.dataset.tab==='tab-ordenes')   renderOrdersTable();
       if(btn.dataset.tab==='tab-menu')      renderMenuEditor();
       if(btn.dataset.tab==='tab-clientes')  renderClientsTab();
@@ -858,7 +903,9 @@ async function saveOrder(){
   const now=new Date();
   const numOrden=getNextOrderNum(state.allOrders);
   const newRow={
-    Num_Orden:numOrden, Fecha:fmtDate(now), Hora:fmtTime(now),
+    Num_Orden:numOrden,
+    Fecha:toYmd(document.getElementById('f-fecha')?.value)||fmtDate(now),
+    Hora:toHms(document.getElementById('f-hora')?.value)||fmtTime(now),
     Cliente:document.getElementById('f-cliente').value.trim()||'Sin nombre',
     Direccion:document.getElementById('f-direccion').value.trim(),
     Productos:state.cart.map(c=>c.item.name).join(' | '),
@@ -889,6 +936,7 @@ function clearForm(){
   document.getElementById('f-estado').value='Pendiente';
   const aj=document.getElementById('f-ajuste'); if(aj) aj.value='';
   const recInp=document.getElementById('f-recibido'); if(recInp) recInp.value='';
+  stampNewOrderWhen();
   state.cart=[]; state.ajuste=0; state.payMethod='Efectivo';
   document.querySelectorAll('.pay-opt').forEach((b,i)=>b.classList.toggle('active',i===0));
   renderCart(); renderMenuGrid();
@@ -962,7 +1010,10 @@ function openOrderDetail(numOrden){
 
   // Header
   document.getElementById('detail-num').textContent  =`#${String(order['Num_Orden']||'').padStart(4,'0')}`;
-  document.getElementById('detail-fecha').textContent=`${order['Fecha']||''} ${order['Hora']||''}`;
+  const fechaInp=document.getElementById('edit-fecha');
+  const horaInp=document.getElementById('edit-hora');
+  if(fechaInp) fechaInp.value=toYmd(order['Fecha'])||'';
+  if(horaInp) horaInp.value=toHms(order['Hora'])||'';
   const badge=document.getElementById('detail-badge');
   badge.textContent=order['Estado']||''; badge.className=`badge badge-${slug(order['Estado'])}`;
 
@@ -1084,6 +1135,11 @@ function initOrderDetailModal(){
       if(cash.empty){ order['Recibido']=''; order['Cambio']=''; }
       else { order['Recibido']=cash.recibido; order['Cambio']=cash.cambio; }
     } else { order['Recibido']=''; order['Cambio']=''; }
+    const fecha=toYmd(document.getElementById('edit-fecha')?.value);
+    const hora=toHms(document.getElementById('edit-hora')?.value);
+    if(!fecha){ toast('Pon una fecha válida','error'); return; }
+    order['Fecha']=fecha;
+    order['Hora']=hora||order['Hora']||fmtTime();
     order['Estado']     =document.getElementById('detail-estado-select').value;
     order['Productos']  =editCart.map(c=>c.name).join(' | ');
     order['Cantidades'] =editCart.map(c=>`${c.qty}x`).join(' | ');
@@ -1860,19 +1916,36 @@ function invLevel(item){
   if(hasMin && stock<=min) return 'yellow';
   return 'ok';
 }
-function isOrderCharged(numOrden){
-  const n=String(numOrden);
-  let charged=false;
+function normOrderNum(n){
+  const s=String(n??'').trim();
+  if(!s) return '';
+  const num=parseInt(s,10);
+  return Number.isFinite(num) ? String(num) : s;
+}
+function movementsNetByIng(numOrden){
+  const n=normOrderNum(numOrden);
+  const net={};
+  if(!n) return net;
   state.movements.forEach(m=>{
-    if(String(m['Num_Orden']||'')!==n) return;
-    if(m['Tipo']==='venta') charged=true;
-    if(m['Tipo']==='reversion') charged=false;
+    if(normOrderNum(m['Num_Orden'])!==n) return;
+    const t=String(m['Tipo']||'').toLowerCase();
+    if(t!=='venta' && t!=='reversion') return;
+    const key=normInvName(m['Ingrediente']);
+    if(!key) return;
+    if(!net[key]) net[key]={ name:m['Ingrediente'], qty:0, unidad:m['Unidad']||'' };
+    net[key].qty += parseFloat(m['Cantidad'])||0;
   });
-  return charged;
+  return net;
 }
 function recipeLinesForProduct(productName){
   const k=normInvName(productName);
-  return state.recipes.filter(r=>normInvName(r['Producto'])===k);
+  const map=new Map();
+  state.recipes.forEach(r=>{
+    if(normInvName(r['Producto'])!==k) return;
+    const ik=normInvName(r['Ingrediente']);
+    if(ik && !map.has(ik)) map.set(ik, r);
+  });
+  return [...map.values()];
 }
 function usageFromOrder(order){
   const missing=[];
@@ -1917,28 +1990,32 @@ function syncOrderInventory(order, opts={}){
   const result={ missing:[], missingIng:[], crossed:[], changed:false };
   if(!order) return result;
   const num=order['Num_Orden'];
-  const was=isOrderCharged(num);
   const should=!opts.deleted && String(order['Estado'])==='Entregada';
-  const prev=opts.prev||order;
-  if(was && should){
-    const oldU=usageFromOrder(prev);
-    applyUsageLines(oldU.lines, +1, 'reversion', num, 'Recálculo / edición', result);
-    const newU=usageFromOrder(order);
-    result.missing=newU.missing;
-    applyUsageLines(newU.lines, -1, 'venta', num, 'Entrega', result);
-    result.changed=true;
-  } else if(!was && should){
+  const wanted={};
+  if(should){
     const u=usageFromOrder(order);
     result.missing=u.missing;
-    applyUsageLines(u.lines, -1, 'venta', num, 'Entrega', result);
-    result.changed=true;
-  } else if(was && !should){
-    const u=usageFromOrder(prev);
-    applyUsageLines(u.lines, +1, 'reversion', num, opts.deleted?'Orden eliminada':'Salida de Entregada', result);
-    result.changed=true;
-  } else {
-    result.missing=should?usageFromOrder(order).missing:[];
+    u.lines.forEach(l=>{
+      wanted[normInvName(l.name)]={ name:l.name, qty:l.qty, unidad:l.unidad };
+    });
   }
+  const actual=movementsNetByIng(num);
+  const keys=new Set([...Object.keys(wanted), ...Object.keys(actual)]);
+  keys.forEach(k=>{
+    const want=wanted[k]?.qty||0;
+    const have=-(actual[k]?.qty||0);
+    const delta=want-have;
+    if(Math.abs(delta)<1e-9) return;
+    const name=wanted[k]?.name||actual[k]?.name;
+    const unidad=wanted[k]?.unidad||actual[k]?.unidad||'';
+    if(delta>0){
+      applyUsageLines([{ name, qty:delta, unidad }], -1, 'venta', num, 'Entrega', result);
+    } else {
+      applyUsageLines([{ name, qty:-delta, unidad }], +1, 'reversion', num,
+        opts.deleted?'Orden eliminada':'Ajuste inventario', result);
+    }
+    result.changed=true;
+  });
   return result;
 }
 function notifyInventoryResult(res){
@@ -2015,6 +2092,11 @@ function renderInventory(){
       <div class="stat-card card"><div class="stat-label">INGREDIENTES</div><div class="stat-value">${state.inventory.length}</div></div>
       <div class="stat-card card"><div class="stat-label">POR COMPRAR</div><div class="stat-value" style="color:${buy.length?'var(--orange)':'var(--green)'}">${buy.length}</div></div>
       <div class="stat-card card"><div class="stat-label">SIN RECETA</div><div class="stat-value">${productsMissingRecipe().length}</div></div>`;
+    kpis.parentElement?.querySelectorAll('.inv-warn').forEach(el=>el.remove());
+    const dups=duplicateRecipePairs();
+    if(dups.length){
+      kpis.insertAdjacentHTML('afterend', `<p class="inv-warn" style="color:var(--orange);margin:8px 0">Hay recetas duplicadas (se usa solo la primera): ${dups.map(escHtml).join(', ')}</p>`);
+    }
   }
   const restockBody=document.getElementById('inv-restock-tbody');
   if(restockBody){
@@ -2092,6 +2174,15 @@ function renderInventory(){
       <td>${escHtml(m['Nota']||'')}</td>
     </tr>`).join('');
   }
+}
+function duplicateRecipePairs(){
+  const seen=new Set(), dups=new Set();
+  state.recipes.forEach(r=>{
+    const k=normInvName(r['Producto'])+'||'+normInvName(r['Ingrediente']);
+    if(seen.has(k)) dups.add(`${r['Producto']} + ${r['Ingrediente']}`);
+    else seen.add(k);
+  });
+  return [...dups];
 }
 function renderRecipeLines(){
   const wrap=document.getElementById('inv-recipe-lines');
@@ -2222,6 +2313,50 @@ function initInventoryTab(){
   });
 }
 
+function runInventorySelfTest(){
+  const snap={
+    inventory:state.inventory, recipes:state.recipes, movements:state.movements, allOrders:state.allOrders
+  };
+  const fail=[];
+  const expect=(name, got, want)=>{
+    const g=Number(got), w=Number(want);
+    if(Math.abs(g-w)>1e-9) fail.push(`${name}: got ${g}, want ${w}`);
+  };
+  try{
+    state.inventory=[{ Nombre:'Pan', Unidad:'pza', Stock:10, Minimo:0, Ideal:20, Proveedor:'', Nota:'' }];
+    state.recipes=[{ Producto:'La Master', Ingrediente:'Pan', Cantidad:1, Unidad:'pza' }];
+    state.movements=[];
+    state.allOrders=[];
+    const order={ Num_Orden:99, Estado:'Entregada', Productos:'La Master', Cantidades:'5x' };
+    syncOrderInventory(order);
+    expect('after 1st deliver', state.inventory[0].Stock, 5);
+    syncOrderInventory(order);
+    expect('after 2nd deliver (idempotent)', state.inventory[0].Stock, 5);
+    order.Estado='Lista';
+    syncOrderInventory(order);
+    expect('after leave Entregada', state.inventory[0].Stock, 10);
+    order.Estado='Entregada';
+    syncOrderInventory(order);
+    expect('after deliver again', state.inventory[0].Stock, 5);
+    const leaked=10-5-2;
+    state.inventory[0].Stock=3;
+    state.movements=[
+      { Tipo:'venta', Ingrediente:'Pan', Cantidad:-5, Num_Orden:99, Unidad:'pza' },
+      { Tipo:'venta', Ingrediente:'Pan', Cantidad:-2, Num_Orden:99, Unidad:'pza' }
+    ];
+    order.Estado='Entregada';
+    syncOrderInventory(order);
+    expect('heal 10-5-2=3 back to 5', state.inventory[0].Stock, 5);
+    if(leaked!==3) fail.push('fixture math');
+  } finally {
+    state.inventory=snap.inventory; state.recipes=snap.recipes;
+    state.movements=snap.movements; state.allOrders=snap.allOrders;
+  }
+  const ok=!fail.length;
+  console[ok?'log':'error'](ok?'[Smashiza test] inventario OK':'[Smashiza test] FAIL\n'+fail.join('\n'));
+  toast(ok?'✔ Test inventario OK (datos demo, tu Excel no se tocó)':'❌ Test inventario: '+fail[0],ok?'success':'error',7000);
+}
+
 // ─────────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────────
@@ -2247,7 +2382,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   initInventoryTab();
   document.getElementById('btn-guardar-orden').addEventListener('click',saveOrder);
   document.getElementById('btn-limpiar-orden').addEventListener('click',clearForm);
+  stampNewOrderWhen();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if(/[?&]test=1(?:&|$)/.test(location.search)) runInventorySelfTest();
 });
 
 // ═══════════════════════════════════════════════════════════

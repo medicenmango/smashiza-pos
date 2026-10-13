@@ -305,6 +305,14 @@
                 <option>Lista</option><option>Entregada</option><option>Cancelada</option>
               </select>
             </div>
+            <div class="form-group">
+              <label>FECHA</label>
+              <input type="date" id="f-fecha" class="pixel-input"/>
+            </div>
+            <div class="form-group">
+              <label>HORA</label>
+              <input type="time" id="f-hora" class="pixel-input" step="1"/>
+            </div>
           </div>
         </div>
         <div class="card live-queue-card">
@@ -508,7 +516,10 @@
     <div class="detail-header">
       <div class="detail-header-left">
         <span class="detail-num" id="detail-num">#0000</span>
-        <span class="detail-fecha" id="detail-fecha">—</span>
+        <div class="detail-when">
+          <input type="date" id="edit-fecha" class="pixel-input" aria-label="Fecha de la orden"/>
+          <input type="time" id="edit-hora" class="pixel-input" step="1" aria-label="Hora de la orden"/>
+        </div>
       </div>
       <span id="detail-badge" class="badge">—</span>
       <button class="btn-icon detail-close" id="btn-detail-close">✕</button>
