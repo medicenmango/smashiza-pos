@@ -74,6 +74,8 @@ const state = {
   clientsSort: { col:'total', dir:'desc' },
   // Menu item sort order per cat (map cat -> ordered id array)
   menuOrder: JSON.parse(localStorage.getItem('smashiza_menu_order')||'{}'),
+  recipeUi: { cat:'all', q:'', open:new Set(), collapsed:{} },
+  recipeDrafts: {},
 };
 
 const HEADERS = [
@@ -2141,39 +2143,12 @@ function renderInventory(){
       }).join('');
     }
   }
-  const prodSel=document.getElementById('inv-recipe-product');
-  const ingSel=document.getElementById('inv-recipe-ing');
-  if(prodSel){
-    const cur=prodSel.value;
-    prodSel.innerHTML=MENU.map(m=>`<option value="${escHtml(m.name)}">${m.emoji} ${escHtml(m.name)}</option>`).join('');
-    if(cur && MENU.some(m=>m.name===cur)) prodSel.value=cur;
-    renderRecipeLines();
-  }
-  if(ingSel){
-    const cur=ingSel.value;
-    ingSel.innerHTML=state.inventory.length
-      ? state.inventory.map(i=>`<option value="${escHtml(i['Nombre'])}">${escHtml(i['Nombre'])} (${escHtml(i['Unidad']||'')})</option>`).join('')
-      : '<option value="">Agrega ingredientes primero</option>';
-    if(cur) ingSel.value=cur;
-  }
   const miss=document.getElementById('inv-missing-recipes');
   if(miss){
     const list=productsMissingRecipe();
     miss.textContent=list.length?('Sin receta aún: '+list.map(m=>m.name).join(', ')):'Todas las recetas del menú tienen al menos un ingrediente.';
   }
-  const movBody=document.getElementById('inv-mov-tbody');
-  if(movBody){
-    const rows=[...state.movements].slice(-40).reverse();
-    if(!rows.length) movBody.innerHTML='<tr><td colspan="6" class="empty-list">Sin movimientos</td></tr>';
-    else movBody.innerHTML=rows.map(m=>`<tr>
-      <td>${escHtml(m['Fecha']||'')} ${escHtml(m['Hora']||'')}</td>
-      <td>${escHtml(m['Tipo']||'')}</td>
-      <td>${escHtml(m['Ingrediente']||'')}</td>
-      <td>${fmtInvQty(m['Cantidad'])} ${escHtml(m['Unidad']||'')}</td>
-      <td>${m['Num_Orden']?('#'+String(m['Num_Orden']).padStart(4,'0')):''}</td>
-      <td>${escHtml(m['Nota']||'')}</td>
-    </tr>`).join('');
-  }
+  renderRecipeBoard();
 }
 function duplicateRecipePairs(){
   const seen=new Set(), dups=new Set();
@@ -2184,23 +2159,157 @@ function duplicateRecipePairs(){
   });
   return [...dups];
 }
-function renderRecipeLines(){
-  const wrap=document.getElementById('inv-recipe-lines');
-  const prod=document.getElementById('inv-recipe-product')?.value;
-  if(!wrap||!prod) return;
-  const lines=recipeLinesForProduct(prod);
-  if(!lines.length){ wrap.innerHTML='<div class="empty-list">Este producto aún no gasta inventario.</div>'; return; }
-  wrap.innerHTML=lines.map((r,i)=>`<div class="inv-recipe-line">
-    <span>${escHtml(r['Ingrediente'])} · ${fmtInvQty(r['Cantidad'])} ${escHtml(r['Unidad']||'')}</span>
-    <button class="btn-secondary btn-inline inv-recipe-del" data-prod="${escHtml(prod)}" data-ing="${escHtml(r['Ingrediente'])}">✕</button>
-  </div>`).join('');
-  wrap.querySelectorAll('.inv-recipe-del').forEach(btn=>{
-    btn.addEventListener('click',async()=>{
-      const pk=normInvName(btn.dataset.prod), ik=normInvName(btn.dataset.ing);
-      state.recipes=state.recipes.filter(r=>!(normInvName(r['Producto'])===pk && normInvName(r['Ingrediente'])===ik));
-      await persistInv();
+function recipeDraftKey(name){ return normInvName(name); }
+function savedRecipeDraft(name){
+  return recipeLinesForProduct(name).map(r=>({
+    name:r['Ingrediente'], qty:parseFloat(r['Cantidad'])||0, unidad:r['Unidad']||''
+  }));
+}
+function getRecipeDraft(name){
+  if(!state.recipeDrafts) state.recipeDrafts={};
+  const k=recipeDraftKey(name);
+  if(!state.recipeDrafts[k]) state.recipeDrafts[k]=savedRecipeDraft(name);
+  return state.recipeDrafts[k];
+}
+function recipeDraftDirty(name){
+  const d=getRecipeDraft(name);
+  const s=savedRecipeDraft(name);
+  if(d.length!==s.length) return true;
+  const sig=arr=>arr.map(l=>normInvName(l.name)+':'+Number(l.qty)).sort().join('|');
+  return sig(d)!==sig(s);
+}
+function ingOptionsHtml(selected, skipSet){
+  const skip=skipSet||new Set();
+  const rows=state.inventory.filter(i=>!skip.has(normInvName(i['Nombre'])) || normInvName(i['Nombre'])===normInvName(selected||''));
+  if(!rows.length) return '<option value="">Sin ingredientes</option>';
+  return rows.map(i=>{
+    const n=i['Nombre'];
+    return `<option value="${escHtml(n)}" ${n===selected?'selected':''}>${escHtml(n)}</option>`;
+  }).join('');
+}
+function visibleRecipeProducts(){
+  const ui=state.recipeUi||{cat:'all',q:''};
+  const q=(ui.q||'').trim().toLowerCase();
+  return MENU.filter(m=>{
+    if(ui.cat && ui.cat!=='all' && m.cat!==ui.cat) return false;
+    if(q && !(`${m.name} ${m.emoji} ${getCatLabel(m.cat)}`.toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+function renderRecipeBoard(){
+  const board=document.getElementById('rec-board');
+  if(!board) return;
+  if(!state.recipeUi) state.recipeUi={ cat:'all', q:'', open:new Set(), collapsed:{} };
+  const ui=state.recipeUi;
+  const chips=document.getElementById('rec-cat-chips');
+  if(chips){
+    const cats=menuCatsInOrder();
+    chips.innerHTML=[
+      `<button type="button" class="rec-chip ${ui.cat==='all'?'active':''}" data-cat="all">TODAS</button>`,
+      ...cats.map(c=>`<button type="button" class="rec-chip ${ui.cat===c?'active':''}" data-cat="${escHtml(c)}">${escHtml(getCatLabel(c))}</button>`)
+    ].join('');
+  }
+  const bulkIng=document.getElementById('rec-bulk-ing');
+  if(bulkIng){
+    const cur=bulkIng.value;
+    bulkIng.innerHTML='<option value="">Ingrediente a cambiar…</option>'+ingOptionsHtml(cur);
+    if(cur && state.inventory.some(i=>i['Nombre']===cur)) bulkIng.value=cur;
+  }
+  const search=document.getElementById('rec-search');
+  if(search && search.value!==(ui.q||'') && document.activeElement!==search) search.value=ui.q||'';
+
+  const visible=visibleRecipeProducts();
+  const byCat=new Map();
+  visible.forEach(m=>{
+    if(!byCat.has(m.cat)) byCat.set(m.cat, []);
+    byCat.get(m.cat).push(m);
+  });
+  const catOrder=menuCatsInOrder().filter(c=>byCat.has(c));
+  if(!visible.length){
+    board.innerHTML='<div class="empty-list">Ningún producto coincide.</div>';
+    return;
+  }
+  board.innerHTML=catOrder.map(cat=>{
+    const items=orderedMenuItems(cat).filter(m=>visible.some(v=>v.name===m.name));
+    const withRec=items.filter(m=>recipeLinesForProduct(m.name).length).length;
+    const collapsed=!!ui.collapsed[cat];
+    return `<section class="rec-cat" data-cat="${escHtml(cat)}">
+      <button type="button" class="rec-cat-toggle" data-cat="${escHtml(cat)}">
+        <span class="rec-cat-name">${escHtml(getCatLabel(cat))}</span>
+        <span class="rec-cat-meta">${withRec}/${items.length} con receta ${collapsed?'▶':'▼'}</span>
+      </button>
+      <div class="rec-cat-body ${collapsed?'hidden':''}">${items.map(m=>recipeProductHtml(m)).join('')}</div>
+    </section>`;
+  }).join('');
+}
+function recipeProductHtml(m){
+  const saved=recipeLinesForProduct(m.name);
+  const draft=getRecipeDraft(m.name);
+  const dirty=recipeDraftDirty(m.name);
+  const open=state.recipeUi.open.has(m.name);
+  const pill=dirty?'<span class="rec-pill dirty">SIN GUARDAR</span>'
+    : (saved.length?'<span class="rec-pill ok">'+saved.length+' ING</span>':'<span class="rec-pill miss">SIN RECETA</span>');
+  const used=new Set(draft.map(l=>normInvName(l.name)));
+  const addOpts=ingOptionsHtml('', used);
+  const copyOpts=MENU.filter(x=>x.name!==m.name).map(x=>`<option value="${escHtml(x.name)}">${escHtml(x.name)}</option>`).join('');
+  const lines=draft.length?draft.map((l,i)=>{
+    const item=findInvItem(l.name);
+    const unidad=item?item['Unidad']:(l.unidad||'');
+    return `<div class="rec-line" data-idx="${i}">
+      <select class="pixel-input rec-ing">${ingOptionsHtml(l.name)}</select>
+      <input type="number" class="pixel-input rec-qty" value="${l.qty||''}" step="any" min="0"/>
+      <span class="rec-unit">${escHtml(unidad)}</span>
+      <button type="button" class="btn-secondary btn-inline rec-del">✕</button>
+    </div>`;
+  }).join(''):'<div class="empty-list">Sin ingredientes. Agrégalos abajo.</div>';
+  return `<article class="rec-prod ${saved.length?'':'missing'} ${dirty?'dirty':''}" data-prod="${escHtml(m.name)}">
+    <button type="button" class="rec-prod-head">
+      <span class="rec-prod-title">${m.emoji} ${escHtml(m.name)}</span>
+      <span class="rec-prod-meta">${pill}</span>
+    </button>
+    <div class="rec-prod-body ${open?'':'hidden'}">
+      <div class="rec-copy-row">
+        <select class="pixel-input rec-copy-src"><option value="">Copiar receta de…</option>${copyOpts}</select>
+        <button type="button" class="btn-secondary btn-inline rec-copy-btn">COPIAR</button>
+      </div>
+      <div class="rec-lines">${lines}</div>
+      <div class="rec-add-row">
+        <select class="pixel-input rec-add-ing"><option value="">＋ Ingrediente</option>${addOpts}</select>
+        <input type="number" class="pixel-input rec-add-qty" placeholder="Cant." step="any" min="0"/>
+        <button type="button" class="btn-primary rec-add-btn" style="width:auto;padding:.4rem .7rem;margin:0">＋</button>
+      </div>
+      <div class="rec-newing-row">
+        <input type="text" class="pixel-input rec-new-name" placeholder="Nuevo ingrediente"/>
+        <select class="pixel-input rec-new-unit"><option value="g">g</option><option value="ml">ml</option><option value="pza">pza</option></select>
+        <input type="number" class="pixel-input rec-new-qty" placeholder="Cant." step="any" min="0"/>
+        <button type="button" class="btn-secondary btn-inline rec-new-btn">CREAR Y AGREGAR</button>
+      </div>
+      <div class="rec-actions">
+        <button type="button" class="btn-primary rec-save-btn" style="width:auto;padding:.5rem 1rem">► GUARDAR RECETA</button>
+        <button type="button" class="btn-secondary rec-revert-btn" style="width:auto;margin:0">DESCARTAR</button>
+      </div>
+    </div>
+  </article>`;
+}
+function writeProductRecipes(productName, lines){
+  const pk=normInvName(productName);
+  state.recipes=state.recipes.filter(r=>normInvName(r['Producto'])!==pk);
+  lines.forEach(l=>{
+    if(!l.name || !(parseFloat(l.qty)>0)) return;
+    const item=findInvItem(l.name);
+    state.recipes.push({
+      Producto:productName,
+      Ingrediente:item?item['Nombre']:l.name,
+      Cantidad:parseFloat(l.qty),
+      Unidad:item?item['Unidad']:(l.unidad||'g')
     });
   });
+}
+async function saveRecipeProduct(productName){
+  writeProductRecipes(productName, getRecipeDraft(productName));
+  delete state.recipeDrafts[recipeDraftKey(productName)];
+  const ok=await persistInv();
+  if(ok) toast('✔ Receta de '+productName+' guardada','success');
 }
 function initInventoryTab(){
   const add=document.getElementById('btn-inv-add');
@@ -2226,17 +2335,7 @@ function initInventoryTab(){
   document.getElementById('btn-inv-reload').addEventListener('click',reloadExcel);
   const invSearch=document.getElementById('inv-search');
   if(invSearch) invSearch.addEventListener('input',renderInventory);
-  const movToggle=document.getElementById('btn-inv-mov-toggle');
-  const movBody=document.getElementById('inv-mov-body');
-  const movChev=document.getElementById('inv-mov-chevron');
-  if(movToggle && movBody){
-    movToggle.addEventListener('click',()=>{
-      const open=movBody.classList.contains('hidden');
-      movBody.classList.toggle('hidden', !open);
-      movToggle.setAttribute('aria-expanded', open?'true':'false');
-      if(movChev) movChev.textContent=open?'▲':'▼';
-    });
-  }
+  initRecipeBoard();
   document.getElementById('inv-tbody').addEventListener('change',async e=>{
     const idx=parseInt(e.target.dataset.idx);
     const item=state.inventory[idx]; if(!item) return;
@@ -2295,22 +2394,148 @@ function initInventoryTab(){
     moveModal.classList.add('hidden');
     await persistInv();
   });
-  document.getElementById('inv-recipe-product').addEventListener('change',renderRecipeLines);
-  document.getElementById('btn-inv-recipe-add').addEventListener('click',async()=>{
-    const producto=document.getElementById('inv-recipe-product').value;
-    const ingrediente=document.getElementById('inv-recipe-ing').value;
-    const cantidad=parseFloat(document.getElementById('inv-recipe-qty').value);
-    if(!producto||!ingrediente){ toast('Elige producto e ingrediente','error'); return; }
-    if(!cantidad||cantidad<=0){ toast('Pon una cantidad','error'); return; }
-    const item=findInvItem(ingrediente);
-    const pk=normInvName(producto), ik=normInvName(ingrediente);
-    const existing=state.recipes.find(r=>normInvName(r['Producto'])===pk && normInvName(r['Ingrediente'])===ik);
-    if(existing) existing['Cantidad']=cantidad;
-    else state.recipes.push({ Producto:producto, Ingrediente:item?item['Nombre']:ingrediente, Cantidad:cantidad, Unidad:item?item['Unidad']:'g' });
-    document.getElementById('inv-recipe-qty').value='';
-    await persistInv();
-    toast('✔ Receta actualizada','success');
+}
+function initRecipeBoard(){
+  const chips=document.getElementById('rec-cat-chips');
+  if(chips){
+    chips.addEventListener('click',e=>{
+      const btn=e.target.closest('[data-cat]'); if(!btn) return;
+      state.recipeUi.cat=btn.dataset.cat||'all';
+      renderRecipeBoard();
+    });
+  }
+  const search=document.getElementById('rec-search');
+  if(search){
+    search.addEventListener('input',()=>{
+      state.recipeUi.q=search.value;
+      renderRecipeBoard();
+    });
+  }
+  const bulkBtn=document.getElementById('btn-rec-bulk');
+  if(bulkBtn) bulkBtn.addEventListener('click',applyRecipeBulk);
+  const board=document.getElementById('rec-board');
+  if(!board) return;
+  board.addEventListener('click',async e=>{
+    const catBtn=e.target.closest('.rec-cat-toggle');
+    if(catBtn){
+      const cat=catBtn.dataset.cat;
+      state.recipeUi.collapsed[cat]=!state.recipeUi.collapsed[cat];
+      renderRecipeBoard();
+      return;
+    }
+    const prodEl=e.target.closest('.rec-prod');
+    if(!prodEl) return;
+    const name=prodEl.dataset.prod;
+    if(e.target.closest('.rec-prod-head')){
+      if(state.recipeUi.open.has(name)) state.recipeUi.open.delete(name);
+      else state.recipeUi.open.add(name);
+      renderRecipeBoard();
+      return;
+    }
+    if(e.target.closest('.rec-del')){
+      const idx=parseInt(e.target.closest('.rec-line')?.dataset.idx);
+      const draft=getRecipeDraft(name);
+      if(!isNaN(idx)) draft.splice(idx,1);
+      renderRecipeBoard();
+      return;
+    }
+    if(e.target.closest('.rec-add-btn')){
+      const ing=prodEl.querySelector('.rec-add-ing')?.value;
+      const qty=parseFloat(prodEl.querySelector('.rec-add-qty')?.value);
+      if(!ing){ toast('Elige un ingrediente','error'); return; }
+      if(!(qty>0)){ toast('Pon una cantidad','error'); return; }
+      const draft=getRecipeDraft(name);
+      const item=findInvItem(ing);
+      const ex=draft.find(l=>normInvName(l.name)===normInvName(ing));
+      if(ex) ex.qty=qty;
+      else draft.push({ name:item?item['Nombre']:ing, qty, unidad:item?item['Unidad']:'g' });
+      renderRecipeBoard();
+      return;
+    }
+    if(e.target.closest('.rec-copy-btn')){
+      const src=prodEl.querySelector('.rec-copy-src')?.value;
+      if(!src){ toast('Elige de qué producto copiar','error'); return; }
+      state.recipeDrafts[recipeDraftKey(name)]=savedRecipeDraft(src).map(l=>({...l}));
+      if(!savedRecipeDraft(src).length) toast('Ese producto no tiene receta guardada','error');
+      renderRecipeBoard();
+      return;
+    }
+    if(e.target.closest('.rec-new-btn')){
+      const newName=(prodEl.querySelector('.rec-new-name')?.value||'').trim();
+      const unidad=prodEl.querySelector('.rec-new-unit')?.value||'g';
+      const qty=parseFloat(prodEl.querySelector('.rec-new-qty')?.value);
+      if(!newName){ toast('Pon el nombre del ingrediente','error'); return; }
+      if(!(qty>0)){ toast('Pon una cantidad','error'); return; }
+      if(!findInvItem(newName)){
+        state.inventory.push({ Nombre:newName, Unidad:unidad, Stock:0, Minimo:'', Ideal:'', Proveedor:'', Nota:'' });
+        const persisted=await persistInv();
+        if(!persisted) return;
+      }
+      const item=findInvItem(newName);
+      const draft=getRecipeDraft(name);
+      const ex=draft.find(l=>normInvName(l.name)===normInvName(newName));
+      if(ex){ ex.qty=qty; ex.unidad=item?item['Unidad']:unidad; }
+      else draft.push({ name:item?item['Nombre']:newName, qty, unidad:item?item['Unidad']:unidad });
+      state.recipeUi.open.add(name);
+      renderRecipeBoard();
+      toast('Ingrediente listo. Guarda la receta cuando termines.','info');
+      return;
+    }
+    if(e.target.closest('.rec-save-btn')){
+      await saveRecipeProduct(name);
+      return;
+    }
+    if(e.target.closest('.rec-revert-btn')){
+      delete state.recipeDrafts[recipeDraftKey(name)];
+      renderRecipeBoard();
+    }
   });
+  const syncLine=e=>{
+    const prodEl=e.target.closest('.rec-prod'); if(!prodEl) return;
+    const name=prodEl.dataset.prod;
+    const line=e.target.closest('.rec-line'); if(!line) return;
+    const idx=parseInt(line.dataset.idx);
+    const draft=getRecipeDraft(name);
+    if(!draft[idx]) return;
+    if(e.target.classList.contains('rec-ing')){
+      const item=findInvItem(e.target.value);
+      draft[idx].name=item?item['Nombre']:e.target.value;
+      draft[idx].unidad=item?item['Unidad']:draft[idx].unidad;
+    }
+    if(e.target.classList.contains('rec-qty')){
+      draft[idx].qty=parseFloat(e.target.value)||0;
+    }
+    const head=prodEl.querySelector('.rec-prod-meta');
+    if(head) head.innerHTML=recipeDraftDirty(name)?'<span class="rec-pill dirty">SIN GUARDAR</span>'
+      : '<span class="rec-pill ok">'+getRecipeDraft(name).length+' ING</span>';
+    prodEl.classList.toggle('dirty', recipeDraftDirty(name));
+  };
+  board.addEventListener('change',syncLine);
+  board.addEventListener('input',e=>{ if(e.target.classList.contains('rec-qty')) syncLine(e); });
+}
+async function applyRecipeBulk(){
+  const ing=document.getElementById('rec-bulk-ing')?.value;
+  const qty=parseFloat(document.getElementById('rec-bulk-qty')?.value);
+  const addMissing=!!document.getElementById('rec-bulk-add')?.checked;
+  if(!ing){ toast('Elige el ingrediente a cambiar','error'); return; }
+  if(!(qty>0)){ toast('Pon la cantidad nueva','error'); return; }
+  const item=findInvItem(ing); if(!item){ toast('Ese ingrediente no está en stock','error'); return; }
+  const vis=visibleRecipeProducts();
+  if(!vis.length){ toast('No hay productos visibles','error'); return; }
+  const ik=normInvName(item['Nombre']);
+  let n=0;
+  vis.forEach(m=>{
+    const draft=getRecipeDraft(m.name);
+    const line=draft.find(l=>normInvName(l.name)===ik);
+    if(line){ line.qty=qty; line.unidad=item['Unidad']; n++; }
+    else if(addMissing){ draft.push({ name:item['Nombre'], qty, unidad:item['Unidad'] }); n++; }
+  });
+  if(!n){ toast('Ningún producto visible tenía '+item['Nombre']+' (marca “agrégalo” si quieres)','info'); return; }
+  if(!confirm(`¿Poner ${item['Nombre']} = ${fmtInvQty(qty)} ${item['Unidad']||''} en ${n} producto(s) visible(s) y guardar?`)) return;
+  vis.forEach(m=>writeProductRecipes(m.name, getRecipeDraft(m.name)));
+  vis.forEach(m=>delete state.recipeDrafts[recipeDraftKey(m.name)]);
+  const ok=await persistInv();
+  if(ok) toast(`✔ ${item['Nombre']} actualizado en ${n} recetas`,'success');
 }
 
 function runInventorySelfTest(){

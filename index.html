@@ -434,7 +434,7 @@
         </table>
       </div>
     </div>
-    <div class="inv-layout">
+    <div class="inv-layout inv-layout-stack">
       <div class="card inv-stock-card">
         <div class="inv-card-head">
           <h3 class="card-title" style="margin:0"><span class="pixel-icon">📦</span> STOCK</h3>
@@ -463,34 +463,22 @@
           </table>
         </div>
       </div>
-      <div class="card inv-recipe-card">
-        <h3 class="card-title"><span class="pixel-icon">📋</span> RECETA POR PRODUCTO</h3>
-        <p class="table-hint" style="margin-bottom:.5rem">Producto del menú + cuánto gasta de cada ingrediente.</p>
-        <select id="inv-recipe-product" class="pixel-input" style="margin-bottom:.6rem"></select>
-        <div id="inv-recipe-lines" class="inv-recipe-lines"></div>
-        <div class="inv-add-row" style="margin-top:.6rem">
-          <select id="inv-recipe-ing" class="pixel-input"></select>
-          <input type="number" id="inv-recipe-qty" class="pixel-input" placeholder="Cantidad" step="any"/>
-          <button class="btn-primary" id="btn-inv-recipe-add" style="width:auto;padding:.45rem .8rem;margin:0">＋</button>
-        </div>
-        <p class="table-hint inv-missing-box" id="inv-missing-recipes"></p>
-      </div>
     </div>
-    <div class="card inv-mov-card">
-      <button type="button" class="inv-mov-toggle" id="btn-inv-mov-toggle" aria-expanded="false">
-        <span class="card-title" style="margin:0"><span class="pixel-icon">📑</span> MOVIMIENTOS RECIENTES</span>
-        <span id="inv-mov-chevron">▼</span>
-      </button>
-      <div id="inv-mov-body" class="hidden">
-        <div class="table-wrap inv-mov-scroll">
-          <table class="pixel-table">
-            <thead><tr>
-              <th>FECHA</th><th>TIPO</th><th>INGREDIENTE</th><th>CANTIDAD</th><th>#ORDEN</th><th>NOTA</th>
-            </tr></thead>
-            <tbody id="inv-mov-tbody"><tr><td colspan="6" class="empty-list">Sin movimientos</td></tr></tbody>
-          </table>
-        </div>
+    <div class="card rec-card">
+      <div class="inv-card-head">
+        <h3 class="card-title" style="margin:0"><span class="pixel-icon">📋</span> RECETA POR PRODUCTO</h3>
       </div>
+      <p class="table-hint" style="margin:.35rem 0 .5rem">Abre un producto, arma la receta y pulsa <strong>GUARDAR RECETA</strong>. Los movimientos siguen en el Excel, ya no aquí.</p>
+      <div class="rec-chips" id="rec-cat-chips"></div>
+      <div class="inv-add-row rec-toolbar">
+        <input type="text" id="rec-search" class="pixel-input" placeholder="🔍 Buscar producto..." style="flex:1.6"/>
+        <select id="rec-bulk-ing" class="pixel-input" style="flex:1.1"></select>
+        <input type="number" id="rec-bulk-qty" class="pixel-input" placeholder="Cant." step="any" style="flex:.55;min-width:72px"/>
+        <label class="rec-bulk-check"><input type="checkbox" id="rec-bulk-add"/> Si no lo tiene, agrégalo</label>
+        <button type="button" class="btn-secondary btn-inline" id="btn-rec-bulk">APLICAR A VISIBLES</button>
+      </div>
+      <p class="table-hint inv-missing-box" id="inv-missing-recipes"></p>
+      <div id="rec-board" class="rec-board"></div>
     </div>
   </div>
 
