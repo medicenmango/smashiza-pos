@@ -3,7 +3,7 @@
    Permite uso offline básico
 ════════════════════════════════════════ */
 
-const CACHE_NAME = 'smashiza-pos-v7';
+const CACHE_NAME = 'smashiza-pos-v8';
 
 const ASSETS = [
   './',
@@ -11,6 +11,7 @@ const ASSETS = [
   './style.css',
   './app.js',
   './manifest.json',
+  './demo/smashiza-demo.xlsx',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Roboto:wght@400;700&display=swap',
 ];

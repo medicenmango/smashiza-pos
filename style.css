@@ -46,6 +46,8 @@ html,body{height:100%;background:var(--bg-dark);color:var(--beige);font-family:v
 .setup-hint{font-size:12px;color:var(--beige-dark);margin-bottom:1.25rem;line-height:1.6;}
 .setup-hint a{color:var(--blue-light);text-decoration:none;}
 .setup-hint a:hover{text-decoration:underline;}
+.btn-demo-mode{width:100%;margin-top:.85rem;}
+.demo-hint{margin:.55rem 0 0;font-size:11px;text-align:center;}
 .retro-footer{font-family:var(--pixel);font-size:7px;color:var(--blue-light);opacity:.6;animation:blink 1.5s step-end infinite;letter-spacing:2px;}
 
 /* ── CARD ── */
@@ -85,6 +87,7 @@ html,body{height:100%;background:var(--bg-dark);color:var(--beige);font-family:v
 .file-write-mode{font-family:var(--pixel);font-size:6px;letter-spacing:.5px;white-space:nowrap;}
 .file-write-mode.ok{color:var(--green);}
 .file-write-mode.warn{color:var(--orange);}
+.file-write-mode.demo{color:var(--yellow);}
 .btn-icon{background:none;border:1px solid var(--border);color:var(--beige-dark);padding:.2rem .4rem;cursor:pointer;font-size:14px;border-radius:2px;transition:all .15s;}
 .btn-icon:hover{border-color:var(--yellow);color:var(--yellow);}
 #clock{font-family:var(--pixel);font-size:8px;color:var(--beige);white-space:nowrap;}

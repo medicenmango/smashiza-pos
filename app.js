@@ -54,6 +54,7 @@ function loadMenuFromStorage() {
   return JSON.parse(JSON.stringify(MENU_DEFAULT));
 }
 function saveMenuToStorage() {
+  if(state.demoMode) return;
   try {
     localStorage.setItem('smashiza_menu_v2', JSON.stringify({ items: MENU, cats: { ...CAT_LABELS } }));
   } catch(_) {}
@@ -76,6 +77,7 @@ const state = {
   menuOrder: JSON.parse(localStorage.getItem('smashiza_menu_order')||'{}'),
   recipeUi: { cat:'all', q:'', open:new Set(), collapsed:{} },
   recipeDrafts: {},
+  demoMode: false,
 };
 
 const HEADERS = [
@@ -257,6 +259,11 @@ function canWriteHandle(h){
 function updateWriteMode(){
   const el=document.getElementById('excel-write-mode');
   if(!el) return;
+  if(state.demoMode){
+    el.textContent='🎮 MODO PRUEBA';
+    el.className='file-write-mode demo';
+    return;
+  }
   if(canWriteHandle(state.fileHandle)){
     el.textContent='✎ EN ARCHIVO';
     el.className='file-write-mode ok';
@@ -321,6 +328,7 @@ function pickFileClassic(){
   });
 }
 async function saveWorkbook(){
+  if(state.demoMode) return;
   if(!state.fileHandle) throw new Error('No hay archivo Excel activo.');
   const writable=await ensureWriteAccess(state.fileHandle);
   if(writable && typeof state.fileHandle.createWritable==='function'){
@@ -509,14 +517,20 @@ async function persistWorkbook(){
 // ─────────────────────────────────────────────
 // LOAD EXCEL
 // ─────────────────────────────────────────────
-async function loadExcel(handle){
-  const ab=await readFileHandle(handle);
-  const wb=XLSX.read(ab,{type:'array',cellDates:true});
+async function applyWorkbook(wb, opts={}){
   ensureSheet(wb);
   ensureInvSheets(wb);
   ensureMenuSheets(wb);
-  state.workbook=wb; state.fileHandle=handle;
-  state.fileName=handle.name||handle._file?.name||'archivo.xlsx';
+  state.workbook=wb;
+  state.demoMode=!!opts.demo;
+  if(opts.handle) state.fileHandle=opts.handle;
+  else if(opts.demo){
+    state.fileHandle={
+      name: opts.fileName||'MODO PRUEBA',
+      createWritable: async()=>({ write:async()=>{}, close:async()=>{} })
+    };
+  }
+  state.fileName=opts.fileName||state.fileHandle?.name||state.fileHandle?._file?.name||'archivo.xlsx';
   state.allOrders=parseOrders(wb);
   state.inventory=parseNamedSheet(wb, INV_SHEET, INV_HEADERS);
   state.recipes=parseNamedSheet(wb, REC_SHEET, REC_HEADERS);
@@ -524,7 +538,7 @@ async function loadExcel(handle){
   state._hydrating=true;
   const migrated=hydrateMenuCatalogFromWorkbook(wb);
   state._hydrating=false;
-  if(migrated){
+  if(migrated && !state.demoMode){
     writeMenuCatalogSheets();
     try{
       await saveWorkbook();
@@ -535,6 +549,30 @@ async function loadExcel(handle){
   document.getElementById('active-filename').textContent=state.fileName;
   document.getElementById('modal-current-file').textContent=state.fileName;
   updateWriteMode();
+}
+async function loadExcel(handle){
+  const ab=await readFileHandle(handle);
+  const wb=XLSX.read(ab,{type:'array',cellDates:true});
+  await applyWorkbook(wb,{
+    handle,
+    fileName:handle.name||handle._file?.name||'archivo.xlsx'
+  });
+}
+async function startDemoMode(){
+  const st=document.getElementById('setup-status');
+  const showSt=(msg,type)=>{ if(!st) return; st.textContent=msg; st.className=`status-msg ${type}`; st.classList.remove('hidden'); };
+  try{
+    showSt('Cargando modo prueba...','info');
+    const res=await fetch('demo/smashiza-demo.xlsx',{cache:'no-store'});
+    if(!res.ok) throw new Error('No se encontró el Excel de prueba');
+    const wb=XLSX.read(await res.arrayBuffer(),{type:'array',cellDates:true});
+    await applyWorkbook(wb,{ demo:true, fileName:'MODO PRUEBA (no guarda)' });
+    showSt('✔ Modo prueba listo.','success');
+    setTimeout(()=>{
+      goToApp();
+      toast('Modo prueba: tu menú e inventario, sin clientes reales. Nada se escribe en tu Excel.','info',7000);
+    },400);
+  }catch(e){ showSt('Error: '+e.message,'error'); }
 }
 
 // ─────────────────────────────────────────────
@@ -559,6 +597,8 @@ function setupScreen(){
     const h=await handleFromDrop(e.dataTransfer); if(h) await handleFile(h);
   });
   document.getElementById('btn-create-excel').addEventListener('click',e=>{e.preventDefault();createNewExcel();});
+  const demoBtn=document.getElementById('btn-demo-mode');
+  if(demoBtn) demoBtn.addEventListener('click',e=>{ e.preventDefault(); startDemoMode(); });
 }
 async function createNewExcel(){
   const wb=XLSX.utils.book_new();
@@ -1633,6 +1673,7 @@ function renderDashChart(activasO){
 // MENU EDITOR
 // ─────────────────────────────────────────────
 function saveMenuOrder(){
+  if(state.demoMode) return;
   localStorage.setItem('smashiza_menu_order',JSON.stringify(state.menuOrder));
 }
 
@@ -2650,6 +2691,7 @@ function loadCatalog(){
 }
 function saveCatalog(cat){
   catalogCache=cat;
+  if(state.demoMode) return;
   try{ localStorage.setItem('smashiza_catalog_v1', JSON.stringify(cat)); }
   catch(_){}
 }
