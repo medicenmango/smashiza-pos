@@ -223,6 +223,10 @@ select.pixel-input option{background:var(--bg-card);}
 
 /* MENU SEARCH */
 .menu-search-bar{margin-bottom:.5rem;font-size:12px;}
+.menu-grid .empty-list{grid-column:1/-1;}
+.search-else{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;font-size:12px;color:var(--beige-dark);}
+.search-else-btn{padding:.2rem .45rem;background:rgba(77,127,255,.12);border:1px solid var(--blue-mid);color:var(--blue-light);cursor:pointer;font-size:11px;border-radius:2px;}
+.search-else-btn:hover{background:rgba(77,127,255,.25);color:var(--beige);}
 
 /* MENU CATEGORIES */
 .menu-categories{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem;}

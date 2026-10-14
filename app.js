@@ -764,10 +764,42 @@ function initClienteAutocomplete(){
 // ─────────────────────────────────────────────
 // MENU GRID (picker en Nueva Orden)
 // ─────────────────────────────────────────────
+function menuItemMatches(item, q){
+  if(!q) return true;
+  return item.name.toLowerCase().includes(q)
+    || item.cat.toLowerCase().includes(q)
+    || getCatLabel(item.cat).toLowerCase().includes(q);
+}
+function otherCatSearchHits(q, excludeCat){
+  if(!q || excludeCat==='all') return [];
+  const counts={};
+  MENU.forEach(i=>{
+    if(i.cat===excludeCat) return;
+    if(!menuItemMatches(i, q)) return;
+    counts[i.cat]=(counts[i.cat]||0)+1;
+  });
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+}
+function searchElseHtml(q){
+  const hits=otherCatSearchHits(q, state.activeCat);
+  if(!hits.length) return '';
+  return `<div class="search-else">En otras: ${hits.map(([cat,n])=>
+    `<button type="button" class="search-else-btn" data-cat="${escHtml(cat)}">${escHtml(getCatLabel(cat))} ${n}</button>`
+  ).join('')}</div>`;
+}
+function bindSearchElse(root){
+  root.querySelectorAll('.search-else-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      state.activeCat=btn.dataset.cat;
+      renderCategoryBtns();
+      renderMenuGrid();
+    });
+  });
+}
 function getFilteredMenuItems(){
   let items = state.activeCat==='all' ? MENU : MENU.filter(i=>i.cat===state.activeCat);
   const q = state.menuSearch.trim().toLowerCase();
-  if(q) items=items.filter(i=>i.name.toLowerCase().includes(q)||i.cat.toLowerCase().includes(q));
+  if(q) items=items.filter(i=>menuItemMatches(i, q));
   // Apply custom sort order per category
   return items.sort((a,b)=>{
     const orderA=state.menuOrder[a.cat]||[];
@@ -782,14 +814,22 @@ function getFilteredMenuItems(){
 function renderMenuGrid(){
   const grid=document.getElementById('menu-grid');
   const items=getFilteredMenuItems();
-  if(!items.length){ grid.innerHTML='<div class="empty-list">Sin resultados</div>'; return; }
+  const q=state.menuSearch.trim().toLowerCase();
+  const elseHtml=searchElseHtml(q);
+  if(!items.length){
+    const here=state.activeCat==='all'?'':' en '+getCatLabel(state.activeCat);
+    grid.innerHTML=`<div class="empty-list">${q?`Sin resultados${here}`:'Sin resultados'}</div>${elseHtml}`;
+    bindSearchElse(grid);
+    return;
+  }
   grid.innerHTML=items.map(item=>`
     <button class="menu-item-btn ${state.cart.find(c=>c.item.id===item.id)?'active-item':''}" data-id="${item.id}">
       <span class="menu-item-emoji">${item.emoji}</span>
       <span class="menu-item-name">${escHtml(item.name)}</span>
       <span class="menu-item-price">${fmtMoney(item.price)}</span>
-    </button>`).join('');
+    </button>`).join('')+elseHtml;
   grid.querySelectorAll('.menu-item-btn').forEach(btn=>btn.addEventListener('click',()=>addToCart(btn.dataset.id)));
+  bindSearchElse(grid);
 }
 function initMenuSearch(){
   const inp=document.getElementById('menu-search');
