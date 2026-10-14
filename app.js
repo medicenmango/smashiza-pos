@@ -889,6 +889,12 @@ function renderCart(){
   const ajEl=document.getElementById('ticket-ajuste-display');
   const totEl=document.getElementById('ticket-total');
   if(!state.cart.length){
+    if(state.ajuste){
+      state.ajuste=0;
+      const ajInp=document.getElementById('f-ajuste');
+      if(ajInp) ajInp.value='';
+    }
+    if(ajEl){ ajEl.textContent=''; ajEl.className='ticket-ajuste-display'; }
     el.innerHTML='<div class="empty-ticket">Sin productos</div>';
     subEl&&(subEl.textContent='$0'); totEl.textContent='$0';
     updateCashUI();
