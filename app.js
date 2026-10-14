@@ -562,15 +562,24 @@ async function startDemoMode(){
   const st=document.getElementById('setup-status');
   const showSt=(msg,type)=>{ if(!st) return; st.textContent=msg; st.className=`status-msg ${type}`; st.classList.remove('hidden'); };
   try{
+    if(typeof buildSmashizaDemo!=='function') throw new Error('Faltan los datos de prueba');
     showSt('Cargando modo prueba...','info');
-    const res=await fetch('demo/smashiza-demo.xlsx',{cache:'no-store'});
-    if(!res.ok) throw new Error('No se encontró el Excel de prueba');
-    const wb=XLSX.read(await res.arrayBuffer(),{type:'array',cellDates:true});
+    const demo=buildSmashizaDemo();
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(HEADERS, demo.orders), 'Ordenes');
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(INV_HEADERS, demo.inventory), INV_SHEET);
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(REC_HEADERS, demo.recipes), REC_SHEET);
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(MOV_HEADERS, demo.movements), MOV_SHEET);
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(MENU_HEADERS, demo.menu), MENU_SHEET);
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(CAT_HEADERS, demo.cats), CAT_SHEET);
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(COST_HEADERS, demo.costs), COST_SHEET);
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(CATALOG_HEADERS, demo.catalog), CATALOG_SHEET);
+    XLSX.utils.book_append_sheet(wb, rowsToSheet(PRICE_HEADERS, demo.priceHist), PRICE_SHEET);
     await applyWorkbook(wb,{ demo:true, fileName:'MODO PRUEBA (no guarda)' });
     showSt('✔ Modo prueba listo.','success');
     setTimeout(()=>{
       goToApp();
-      toast('Modo prueba: tu menú e inventario, sin clientes reales. Nada se escribe en tu Excel.','info',7000);
+      toast('Modo prueba lleno: menú, recetas, costos, inventario, clientes y órdenes de muestra. No se guarda en tu Excel.','info',8000);
     },400);
   }catch(e){ showSt('Error: '+e.message,'error'); }
 }
