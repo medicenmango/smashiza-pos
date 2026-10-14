@@ -141,7 +141,7 @@ function stampNewOrderWhen(){
   if(f) f.value=fmtDate(now);
   if(h) h.value=`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
-function fmtMoney(n){ return '$'+Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function fmtMoney(n){ return '$'+String(peso(n)).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
 function peso(n){ return Math.round(Number(n)||0); }
 function parsePesoOptional(v){
   if(v===''||v==null||String(v).trim()==='') return null;
@@ -890,7 +890,7 @@ function renderCart(){
   const totEl=document.getElementById('ticket-total');
   if(!state.cart.length){
     el.innerHTML='<div class="empty-ticket">Sin productos</div>';
-    subEl&&(subEl.textContent='$0.00'); totEl.textContent='$0.00';
+    subEl&&(subEl.textContent='$0'); totEl.textContent='$0';
     updateCashUI();
     return;
   }

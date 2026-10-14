@@ -314,9 +314,9 @@
         <div class="card ticket-card">
           <h3 class="card-title"><span class="pixel-icon">🧾</span> TICKET</h3>
           <div id="ticket-items" class="ticket-items"><div class="empty-ticket">Sin productos</div></div>
-          <div class="ticket-subtotal-row"><span>Subtotal</span><span id="ticket-subtotal">$0.00</span></div>
+          <div class="ticket-subtotal-row"><span>Subtotal</span><span id="ticket-subtotal">$0</span></div>
           <div id="ticket-ajuste-display" class="ticket-ajuste-display"></div>
-          <div class="ticket-total-row"><span>TOTAL</span><span id="ticket-total" class="ticket-total">$0.00</span></div>
+          <div class="ticket-total-row"><span>TOTAL</span><span id="ticket-total" class="ticket-total">$0</span></div>
           <div class="ticket-pay">
             <div class="form-group full">
               <label>MÉTODO DE PAGO</label>
@@ -337,7 +337,7 @@
               <div id="cash-result" class="cash-result"></div>
             </div>
           </div>
-          <button class="btn-primary" id="btn-guardar-orden">► GUARDAR ORDEN EN EXCEL</button>
+          <button class="btn-primary" id="btn-guardar-orden">► MANDAR COMANDA</button>
           <button class="btn-secondary" id="btn-limpiar-orden">✕ LIMPIAR</button>
         </div>
       </div>
@@ -542,8 +542,8 @@
     <div class="detail-section">
       <div class="detail-section-title">🍔 PRODUCTOS EN LA ORDEN</div>
       <div id="edit-cart-items" class="ticket-items" style="max-height:160px;overflow-y:auto"></div>
-      <div class="ticket-subtotal-row"><span>Subtotal</span><span id="edit-subtotal">$0.00</span></div>
-      <div class="ticket-total-row" style="margin-bottom:0"><span>TOTAL</span><span id="edit-total-calc" class="ticket-total">$0.00</span></div>
+      <div class="ticket-subtotal-row"><span>Subtotal</span><span id="edit-subtotal">$0</span></div>
+      <div class="ticket-total-row" style="margin-bottom:0"><span>TOTAL</span><span id="edit-total-calc" class="ticket-total">$0</span></div>
     </div>
 
     <!-- Add product from menu inside modal -->
@@ -555,7 +555,7 @@
 
     <div class="detail-total-row">
       <span class="detail-section-title">TOTAL CALCULADO:</span>
-      <span class="detail-total-big" id="edit-total-calc-display">$0.00</span>
+      <span class="detail-total-big" id="edit-total-calc-display">$0</span>
     </div>
 
     <div class="modal-actions" style="margin-top:.75rem;flex-wrap:wrap;gap:.5rem">
