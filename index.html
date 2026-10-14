@@ -337,8 +337,13 @@
               <div id="cash-result" class="cash-result"></div>
             </div>
           </div>
-          <button class="btn-primary" id="btn-guardar-orden">► MANDAR COMANDA</button>
-          <button class="btn-secondary" id="btn-limpiar-orden">✕ LIMPIAR</button>
+          <div class="ticket-actions">
+            <div class="ticket-btn-row">
+              <button class="btn-primary" id="btn-guardar-orden">► MANDAR COMANDA</button>
+              <button type="button" class="btn-secondary" id="btn-copiar-ticket">📋 COPIAR PARA CLIENTE</button>
+            </div>
+            <button class="btn-secondary" id="btn-limpiar-orden">✕ LIMPIAR</button>
+          </div>
         </div>
       </div>
     </div>
@@ -560,6 +565,7 @@
 
     <div class="modal-actions" style="margin-top:.75rem;flex-wrap:wrap;gap:.5rem">
       <button class="btn-primary" id="btn-detail-save-all" style="width:auto;padding:.6rem 1.25rem">► GUARDAR CAMBIOS</button>
+      <button type="button" class="btn-secondary" id="btn-detail-copiar-ticket" style="width:auto;margin:0">📋 COPIAR PARA CLIENTE</button>
       <button class="btn-secondary" style="width:auto;margin:0" onclick="document.getElementById('modal-detail').classList.add('hidden')">CANCELAR</button>
       <button class="btn-secondary" id="btn-detail-delete" style="width:auto;margin:0;border-color:var(--red);color:var(--red-glow)">🗑️ ELIMINAR ORDEN</button>
     </div>
