@@ -1597,42 +1597,45 @@ function goToInventarioTab(){
   const btn=document.querySelector('.nav-btn[data-tab="tab-inventario"]');
   if(btn) btn.click();
 }
+function dashInvPhrase(prefixOne, prefixMany, items){
+  const names=items.map(i=>String(i['Nombre']||'').trim()).filter(Boolean);
+  if(!names.length) return '';
+  if(names.length===1) return `${prefixOne} ${names[0]}`;
+  const max=3;
+  const shown=names.slice(0,max);
+  const extra=names.length-shown.length;
+  return `${prefixMany} ${shown.join(', ')}${extra?` y ${extra} más`:''}`;
+}
+function cashierDashInv(){
+  const gone=[], low=[];
+  state.inventory.forEach(i=>{
+    const stock=parseFloat(i['Stock'])||0;
+    if(state.demoMode && stock<0) return;
+    const lvl=invLevel(i);
+    if(lvl==='red') gone.push(i);
+    else if(lvl==='yellow') low.push(i);
+  });
+  return {gone, low};
+}
 function renderDashInvAlerts(){
   const el=document.getElementById('dash-inv-alert');
   if(!el) return;
-  if(!state.inventory.length){
-    el.className='card dash-inv-alert dash-inv-ok';
-    el.innerHTML=`<div class="dash-inv-head"><h3 class="card-title" style="margin:0"><span class="pixel-icon">📦</span> INVENTARIO</h3>
-      <span class="table-hint">Carga ingredientes en la tab Inventario</span></div>`;
+  const {gone, low}=cashierDashInv();
+  if(!gone.length && !low.length){
+    el.hidden=true;
+    el.className='dash-inv-strip hidden';
+    el.innerHTML='';
     return;
   }
-  const red=state.inventory.filter(i=>invLevel(i)==='red');
-  const yellow=state.inventory.filter(i=>invLevel(i)==='yellow');
-  const buy=restockBuyItems();
-  const urgent=red.length+yellow.length;
-  if(!urgent && !buy.length){
-    el.className='card dash-inv-alert dash-inv-ok';
-    el.innerHTML=`<div class="dash-inv-head">
-      <h3 class="card-title" style="margin:0"><span class="pixel-icon">📦</span> INVENTARIO OK</h3>
-      <button type="button" class="btn-secondary btn-inline" id="btn-dash-goto-inv">VER INVENTARIO</button>
-    </div>
-    <p class="table-hint" style="margin:0">Nada en mínimo y nada por debajo del ideal.</p>`;
-    document.getElementById('btn-dash-goto-inv')?.addEventListener('click',goToInventarioTab);
-    return;
-  }
-  el.className='card dash-inv-alert'+(red.length?' dash-inv-crit':' dash-inv-warn');
-  const chip=items=>items.map(i=>`<span class="dash-inv-chip">${escHtml(i['Nombre'])} <strong>${fmtInvQty(i['Stock'])} ${escHtml(i['Unidad']||'')}</strong></span>`).join('');
-  const buyChip=buy.slice(0,12).map(r=>`<span class="dash-inv-chip">${escHtml(r.item['Nombre'])} <strong>+${fmtInvQty(r.buy)}</strong></span>`).join('');
-  const more=buy.length>12?`<span class="table-hint">+${buy.length-12} más</span>`:'';
-  el.innerHTML=`<div class="dash-inv-head">
-      <h3 class="card-title" style="margin:0"><span class="pixel-icon">${red.length?'🔴':'🟡'}</span> AVISOS DE INVENTARIO</h3>
-      <button type="button" class="btn-secondary btn-inline" id="btn-dash-goto-inv">VER INVENTARIO</button>
-    </div>
-    <div class="dash-inv-body">
-      ${red.length?`<div class="dash-inv-row"><span class="dash-inv-lbl red">SIN STOCK / NEGATIVO</span><div class="dash-inv-chips">${chip(red)}</div></div>`:''}
-      ${yellow.length?`<div class="dash-inv-row"><span class="dash-inv-lbl yellow">EN MÍNIMO</span><div class="dash-inv-chips">${chip(yellow)}</div></div>`:''}
-      ${buy.length?`<div class="dash-inv-row"><span class="dash-inv-lbl buy">POR COMPRAR (${buy.length})</span><div class="dash-inv-chips">${buyChip}${more}</div></div>`:''}
-    </div>`;
+  el.hidden=false;
+  el.className='dash-inv-strip '+(gone.length?'crit':'warn');
+  const bits=[];
+  const acabó=dashInvPhrase('Se acabó','Se acabó:', gone);
+  const poco=dashInvPhrase('Queda poco','Queda poco:', low);
+  if(acabó) bits.push(`<span class="dash-inv-msg gone">${escHtml(acabó)}</span>`);
+  if(poco) bits.push(`<span class="dash-inv-msg low">${escHtml(poco)}</span>`);
+  el.innerHTML=`${bits.join('<span class="table-hint">·</span>')}
+    <button type="button" class="btn-secondary btn-inline" id="btn-dash-goto-inv">INVENTARIO</button>`;
   document.getElementById('btn-dash-goto-inv')?.addEventListener('click',goToInventarioTab);
 }
 
