@@ -1178,7 +1178,9 @@ function badgeClass(e){ return `badge badge-${(e||'').toLowerCase().replace(/\s+
 function renderOrdersStats(){
   const todayStr=today();
   const todayO=state.allOrders.filter(o=>String(o['Fecha']).startsWith(todayStr));
-  const ventas=todayO.reduce((s,o)=>s+(parseFloat(o['Total'])||0),0);
+  const ventas=todayO
+    .filter(o=>o['Estado']!=='Cancelada')
+    .reduce((s,o)=>s+(parseFloat(o['Total'])||0),0);
   document.getElementById('qs-ordenes').textContent  =todayO.length;
   document.getElementById('qs-ventas').textContent   =fmtMoney(ventas);
   const qsCaja=document.getElementById('qs-caja');
