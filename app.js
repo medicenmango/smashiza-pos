@@ -951,6 +951,11 @@ function updateOrderNumBadge(){
 async function saveOrder(){
   if(!state.workbook){ toast('⚠️ No hay Excel cargado.','error'); return; }
   if(!state.cart.length){ toast('⚠️ Agrega al menos un producto.','error'); return; }
+  if(state.payMethod==='Efectivo' && parsePesoOptional(document.getElementById('f-recibido')?.value)==null){
+    toast('En efectivo pon con cuánto pagan ($200, $500 o EXACTO)','error');
+    document.getElementById('f-recibido')?.focus();
+    return;
+  }
   const now=new Date();
   const numOrden=getNextOrderNum(state.allOrders);
   const newRow={
@@ -968,8 +973,7 @@ async function saveOrder(){
   };
   if(state.payMethod==='Efectivo'){
     const cash=cashBreakdown(newRow.Total, parsePesoOptional(document.getElementById('f-recibido')?.value));
-    if(cash.empty) toast('Sin monto recibido — se guardó sin cambio','info');
-    else { newRow.Recibido=cash.recibido; newRow.Cambio=cash.cambio; }
+    newRow.Recibido=cash.recibido; newRow.Cambio=cash.cambio;
   }
   state.allOrders.push(newRow);
   const invRes=syncOrderInventory(newRow);

@@ -215,6 +215,8 @@ select.pixel-input option{background:var(--bg-card);}
 .cash-result.cash-short{color:var(--orange);}
 .cash-result.cash-warn{color:var(--beige-dark);font-weight:400;font-size:11px;}
 .cash-badge{font-size:10px;color:var(--green);margin-top:.15rem;font-family:var(--mono);}
+.ticket-pay{margin:.65rem 0 .5rem;padding-top:.55rem;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:.55rem;}
+.ticket-pay .pay-opt{font-size:12px;padding:.45rem .35rem;}
 
 /* AJUSTE */
 .ajuste-wrap{display:flex;align-items:center;gap:.4rem;}

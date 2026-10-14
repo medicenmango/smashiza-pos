@@ -273,24 +273,6 @@
               <label>COMENTARIOS</label>
               <textarea id="f-comentarios" placeholder="Sin cebolla, extra salsa, sin papas..." class="pixel-input" rows="2"></textarea>
             </div>
-            <div class="form-group full">
-              <label>MÉTODO DE PAGO</label>
-              <div class="pay-toggle">
-                <button class="pay-opt active" data-pay="Efectivo">💵 Efectivo</button>
-                <button class="pay-opt" data-pay="Transferencia">📱 Transferencia</button>
-                <button class="pay-opt" data-pay="Tarjeta">💳 Tarjeta</button>
-              </div>
-            </div>
-            <div class="form-group full" id="cash-wrap">
-              <label>¿CON CUÁNTO PAGA?</label>
-              <div class="cash-quick">
-                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="200">$200</button>
-                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="500">$500</button>
-                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="exact">EXACTO</button>
-              </div>
-              <input type="number" id="f-recibido" class="pixel-input" min="0" step="1" placeholder="Ej: 500"/>
-              <div id="cash-result" class="cash-result"></div>
-            </div>
             <div class="form-group">
               <label>AJUSTE (−descuento / +cargo)</label>
               <div class="ajuste-wrap">
@@ -335,6 +317,26 @@
           <div class="ticket-subtotal-row"><span>Subtotal</span><span id="ticket-subtotal">$0.00</span></div>
           <div id="ticket-ajuste-display" class="ticket-ajuste-display"></div>
           <div class="ticket-total-row"><span>TOTAL</span><span id="ticket-total" class="ticket-total">$0.00</span></div>
+          <div class="ticket-pay">
+            <div class="form-group full">
+              <label>MÉTODO DE PAGO</label>
+              <div class="pay-toggle">
+                <button class="pay-opt active" data-pay="Efectivo">💵 Efectivo</button>
+                <button class="pay-opt" data-pay="Transferencia">📱 Transferencia</button>
+                <button class="pay-opt" data-pay="Tarjeta">💳 Tarjeta</button>
+              </div>
+            </div>
+            <div class="form-group full" id="cash-wrap">
+              <label>¿CON CUÁNTO PAGA?</label>
+              <div class="cash-quick">
+                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="200">$200</button>
+                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="500">$500</button>
+                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="exact">EXACTO</button>
+              </div>
+              <input type="number" id="f-recibido" class="pixel-input" min="0" step="1" placeholder="Ej: 500"/>
+              <div id="cash-result" class="cash-result"></div>
+            </div>
+          </div>
           <button class="btn-primary" id="btn-guardar-orden">► GUARDAR ORDEN EN EXCEL</button>
           <button class="btn-secondary" id="btn-limpiar-orden">✕ LIMPIAR</button>
         </div>
