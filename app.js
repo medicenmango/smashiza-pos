@@ -137,9 +137,7 @@ function toHms(v){
 function stampNewOrderWhen(){
   const now=new Date();
   const f=document.getElementById('f-fecha');
-  const h=document.getElementById('f-hora');
   if(f) f.value=fmtDate(now);
-  if(h) h.value=`${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 function fmtMoney(n){ return '$'+String(peso(n)).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
 function peso(n){ return Math.round(Number(n)||0); }
@@ -1057,7 +1055,6 @@ function layoutTicket(ctx, data, W, pad){
   ctx.font=title;
   add('title', {text:'LA SMASHIZA', h:28});
   add('sub', {text:'RETRO BURGER', h:22});
-  if(data.num) add('num', {text:'Orden #'+String(data.num).padStart(4,'0'), h:24});
   add('gap', {h:10});
   ctx.font=small;
   if(data.cliente){
@@ -1191,7 +1188,7 @@ async function saveOrder(){
   const newRow={
     Num_Orden:numOrden,
     Fecha:toYmd(document.getElementById('f-fecha')?.value)||fmtDate(now),
-    Hora:toHms(document.getElementById('f-hora')?.value)||fmtTime(now),
+    Hora:fmtTime(now),
     Cliente:document.getElementById('f-cliente').value.trim()||'Sin nombre',
     Direccion:document.getElementById('f-direccion').value.trim(),
     Productos:state.cart.map(c=>c.item.name).join(' | '),
@@ -1422,10 +1419,8 @@ function initOrderDetailModal(){
       else { order['Recibido']=cash.recibido; order['Cambio']=cash.cambio; }
     } else { order['Recibido']=''; order['Cambio']=''; }
     const fecha=toYmd(document.getElementById('edit-fecha')?.value);
-    const hora=toHms(document.getElementById('edit-hora')?.value);
     if(!fecha){ toast('Pon una fecha válida','error'); return; }
     order['Fecha']=fecha;
-    order['Hora']=hora||order['Hora']||fmtTime();
     order['Estado']     =document.getElementById('detail-estado-select').value;
     order['Productos']  =editCart.map(c=>c.name).join(' | ');
     order['Cantidades'] =editCart.map(c=>`${c.qty}x`).join(' | ');
