@@ -1,7 +1,6 @@
 # 🍔 La Smashiza Retro Burger — POS System
 
-Sistema de punto de venta PWA para **La Smashiza Retro Burger**.  
-Funciona directamente en Safari o Chrome. **Sin instalar nada.**
+Sistema de punto de venta PWA para **La Smashiza Retro Burger**.
 
 ---
 
@@ -11,43 +10,35 @@ Funciona directamente en Safari o Chrome. **Sin instalar nada.**
 smashiza-pos/
 ├── index.html          ← Aplicación principal
 ├── style.css           ← Estilos (tema arcade retro)
-├── app.js              ← Lógica completa
+├── src/
+│   ├── main.js         ← Arranque
+│   ├── state.js        ← Estado global
+│   ├── utils/  ui/     ← Formatos, toasts, reloj
+│   ├── domain/         ← Reglas de negocio (menú, catálogo, órdenes, inventario)
+│   ├── storage/        ← Persistencia (hoy: Excel)
+│   └── features/       ← Cada pestaña de la app
+├── demo-data.js        ← Datos del modo prueba
 ├── manifest.json       ← Configuración PWA
 ├── sw.js               ← Service Worker (offline)
-├── icons/
-│   ├── icon-192.png    ← Ícono PWA
-│   └── icon-512.png    ← Ícono PWA grande
-└── generate_icons.py   ← (Opcional) Regenerar íconos
+└── icons/              ← Íconos PWA
 ```
+
+> Si agregas o renombras un archivo en `src/`, agrégalo también a `ASSETS` en `sw.js` y sube `CACHE_NAME`.
 
 ---
 
-## 🚀 CÓMO ABRIR EN MAC SIN INSTALAR NADA
+## 🚀 CÓMO ABRIR
 
-### Opción A — Doble clic (más fácil)
+La app usa módulos de JavaScript, así que **ya no funciona con doble clic en `index.html`**: necesita servirse por `http://`.
 
-1. Abre la carpeta `smashiza-pos`
-2. Haz doble clic en `index.html`
-3. Se abrirá en Safari automáticamente ✅
+### Desarrollo local
 
-### Opción B — Chrome o Firefox
-
-1. Arrastra el archivo `index.html` a la ventana del navegador
-2. O abre el navegador y presiona `Cmd + O` para abrir el archivo
-
-### Opción C — Servidor local (recomendado para PWA completa)
-
-macOS incluye Python 3 de serie:
+Requiere Node.js:
 
 ```bash
-# En Terminal, navega a la carpeta del proyecto:
-cd ~/Desktop/smashiza-pos
-
-# Inicia el servidor local:
-python3 -m http.server 8080
-
-# Abre en el navegador:
-# http://localhost:8080
+npm install      # solo la primera vez
+npm run dev      # abre http://localhost:8080
+npm run lint     # revisa errores en src/
 ```
 
 > ⚠️ El Service Worker (modo offline) solo funciona con servidor local o HTTPS.

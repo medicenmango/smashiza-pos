@@ -3,13 +3,35 @@
    Permite uso offline básico
 ════════════════════════════════════════ */
 
-const CACHE_NAME = 'smashiza-pos-v18';
+const CACHE_NAME = 'smashiza-pos-v20';
 
 const ASSETS = [
   './',
   './index.html',
   './style.css',
-  './app.js',
+  './src/main.js',
+  './src/constants.js',
+  './src/state.js',
+  './src/utils/format.js',
+  './src/ui/toast.js',
+  './src/ui/clock.js',
+  './src/domain/menu.js',
+  './src/domain/catalog.js',
+  './src/domain/orders.js',
+  './src/domain/inventory.js',
+  './src/storage/index.js',
+  './src/storage/events.js',
+  './src/storage/excel.js',
+  './src/features/setup.js',
+  './src/features/nav.js',
+  './src/features/nueva-orden.js',
+  './src/features/ticket.js',
+  './src/features/ordenes.js',
+  './src/features/dashboard.js',
+  './src/features/menu-editor.js',
+  './src/features/clientes.js',
+  './src/features/inventario.js',
+  './src/features/analisis.js',
   './manifest.json',
   './demo-data.js',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
