@@ -1,5 +1,6 @@
 import { loadCatalog, saveCatalog } from '../domain/catalog.js';
 import { CAT_LABELS, saveMenuToStorage, MENU, saveMenuOrder, menuCatsInOrder, orderedMenuItems } from '../domain/menu.js';
+import { itemsFromLegacy, orderItems } from '../domain/orders.js';
 import { state } from '../state.js';
 import { emitDataLoaded } from './events.js';
 import { toast } from '../ui/toast.js';
@@ -10,6 +11,10 @@ export const HEADERS = [
   'Productos','Cantidades','Comentarios','Metodo_Pago',
   'Ajuste','Total','Recibido','Cambio','Estado'
 ];
+
+export const DET_SHEET='OrdenDetalle';
+
+export const DET_HEADERS=['Num_Orden','Linea','Producto_Id','Producto','Cantidad','Precio_Unitario','Subtotal'];
 
 export const INV_SHEET='Inventario', REC_SHEET='Recetas', MOV_SHEET='Movimientos';
 
@@ -123,8 +128,40 @@ export async function saveWorkbook(){
 }
 
 export function ensureSheet(wb){
-  if(!wb.SheetNames.includes(state.sheetName))
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([HEADERS]),state.sheetName);
+  [[state.sheetName,HEADERS],[DET_SHEET,DET_HEADERS]].forEach(([name,headers])=>{
+    if(!wb.SheetNames.includes(name))
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([headers]),name);
+  });
+}
+
+function attachOrderItems(wb){
+  const byOrder=new Map();
+  parseNamedSheet(wb, DET_SHEET, DET_HEADERS).forEach(r=>{
+    const k=String(parseInt(r.Num_Orden));
+    if(!byOrder.has(k)) byOrder.set(k, []);
+    byOrder.get(k).push(r);
+  });
+  state.allOrders.forEach(o=>{
+    const rows=byOrder.get(String(parseInt(o['Num_Orden'])));
+    o['Items']=rows
+      ? rows.sort((a,b)=>(parseInt(a.Linea)||0)-(parseInt(b.Linea)||0)).map(r=>({
+          Producto_Id:String(r.Producto_Id||''),
+          Producto:String(r.Producto),
+          Cantidad:parseInt(r.Cantidad)||1,
+          Precio_Unitario:Number(r.Precio_Unitario)||0,
+        }))
+      : itemsFromLegacy(o);
+  });
+}
+
+function writeDetailSheet(){
+  ensureSheet(state.workbook);
+  const rows=[];
+  state.allOrders.forEach(o=>orderItems(o).forEach((i,idx)=>rows.push({
+    Num_Orden:o['Num_Orden'], Linea:idx+1, Producto_Id:i.Producto_Id, Producto:i.Producto,
+    Cantidad:i.Cantidad, Precio_Unitario:i.Precio_Unitario, Subtotal:i.Cantidad*i.Precio_Unitario,
+  })));
+  state.workbook.Sheets[DET_SHEET]=rowsToSheet(DET_HEADERS, rows);
 }
 
 export function ensureInvSheets(wb){
@@ -268,6 +305,7 @@ export function parseOrders(wb){
 export async function persistWorkbook(){
   const rows=[HEADERS,...state.allOrders.map(o=>HEADERS.map(h=>o[h]??''))];
   state.workbook.Sheets[state.sheetName]=XLSX.utils.aoa_to_sheet(rows);
+  writeDetailSheet();
   writeInvSheets();
   writeMenuCatalogSheets();
   await saveWorkbook();
@@ -294,6 +332,7 @@ export async function applyWorkbook(wb, opts={}){
   state._hydrating=true;
   const migrated=hydrateMenuCatalogFromWorkbook(wb);
   state._hydrating=false;
+  attachOrderItems(wb);
   if(migrated && !state.demoMode){
     writeMenuCatalogSheets();
     try{
@@ -331,7 +370,7 @@ export async function loadDemoWorkbook(){
 
 export async function createNewExcel(){
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([HEADERS]),state.sheetName);
+  ensureSheet(wb);
   ensureInvSheets(wb);
   ensureMenuSheets(wb);
   const prevWb=state.workbook;
