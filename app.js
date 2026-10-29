@@ -707,9 +707,11 @@ function getKnownClients(){
   const seen=new Map();
   for(let i=state.allOrders.length-1;i>=0;i--){
     const o=state.allOrders[i];
-    const k=(o['Cliente']||'').trim();
-    if(!k||k.toLowerCase()==='sin nombre') continue;
-    if(!seen.has(k)) seen.set(k,{cliente:k,direccion:(o['Direccion']||'').trim()});
+    const cliente=(o['Cliente']||'').trim();
+    if(!cliente||cliente.toLowerCase()==='sin nombre') continue;
+    const direccion=(o['Direccion']||'').trim();
+    const key=foldTxt(cliente)+'\n'+foldTxt(direccion);
+    if(!seen.has(key)) seen.set(key,{cliente,direccion});
   }
   return [...seen.values()];
 }
@@ -725,7 +727,7 @@ function renderClienteSuggestions(){
     inp.setAttribute('aria-expanded','false');
     return;
   }
-  const matches=getKnownClients().filter(c=>foldTxt(c.cliente).includes(q)).slice(0,8);
+  const matches=getKnownClients().filter(c=>foldTxt(c.cliente).includes(q)).slice(0,20);
   if(!matches.length){
     list.classList.add('hidden');
     list.innerHTML='';

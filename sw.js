@@ -3,7 +3,7 @@
    Permite uso offline básico
 ════════════════════════════════════════ */
 
-const CACHE_NAME = 'smashiza-pos-v17';
+const CACHE_NAME = 'smashiza-pos-v18';
 
 const ASSETS = [
   './',
