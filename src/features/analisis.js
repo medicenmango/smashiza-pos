@@ -4,7 +4,7 @@ import { CAT_LABELS, MENU, getCatLabel } from '../domain/menu.js';
 import { parseOrderItems } from '../domain/orders.js';
 import { refreshCategoryLabels } from './menu-editor.js';
 import { state } from '../state.js';
-import { persistMenuCatalog } from '../storage/index.js';
+import { saveMenuCatalog } from '../storage/index.js';
 import { toast } from '../ui/toast.js';
 import { pad, fmtDate, fmtMoney, today, escHtml } from '../utils/format.js';
 
@@ -256,7 +256,7 @@ export function renderCostEditor(){
       if(!isNaN(v)&&v>0) newCosts[inp.dataset.name]=v;
     });
     saveCosts(newCosts, names);
-    persistMenuCatalog(true);
+    saveMenuCatalog(true);
     toast('✔ Costos guardados en el Excel','success');
     renderCostEditor(); renderBA();
   });

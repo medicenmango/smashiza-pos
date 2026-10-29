@@ -5,7 +5,7 @@ import { refreshDashboard } from './dashboard.js';
 import { notifyInventoryResult, renderInventory } from './inventario.js';
 import { openOrderDetail, badgeClass } from './ordenes.js';
 import { state } from '../state.js';
-import { persistWorkbook } from '../storage/excel.js';
+import { isReady, saveNewOrder } from '../storage/index.js';
 import { relTime } from '../ui/clock.js';
 import { toast } from '../ui/toast.js';
 import { fmtDate, fmtTime, fmtMoney, peso, parsePesoOptional, today, escHtml, foldTxt } from '../utils/format.js';
@@ -335,8 +335,8 @@ export function updateOrderNumBadge(){
   document.getElementById('orden-num-badge').textContent=`#${String(getNextOrderNum(state.allOrders)).padStart(4,'0')}`;
 }
 
-export async function saveOrder(){
-  if(!state.workbook){ toast('⚠️ No hay Excel cargado.','error'); return; }
+export async function submitOrder(){
+  if(!isReady()){ toast('⚠️ No hay datos cargados.','error'); return; }
   if(!state.cart.length){ toast('⚠️ Agrega al menos un producto.','error'); return; }
   if(state.payMethod==='Efectivo' && parsePesoOptional(document.getElementById('f-recibido')?.value)==null){
     toast('En efectivo pon con cuánto pagan ($200, $500 o EXACTO)','error');
@@ -365,7 +365,7 @@ export async function saveOrder(){
   state.allOrders.push(newRow);
   const invRes=syncOrderInventory(newRow);
   try{
-    await persistWorkbook();
+    await saveNewOrder(newRow);
     toast(`✔ Orden #${String(numOrden).padStart(4,'0')} guardada`,'success');
     notifyInventoryResult(invRes);
     clearForm(); updateOrderNumBadge(); refreshDashboard(); renderInventory();

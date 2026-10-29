@@ -7,7 +7,7 @@ import { notifyInventoryResult, renderInventory } from './inventario.js';
 import { renderCashResult, applyCashQuick } from './nueva-orden.js';
 import { collectEditOrderTicket, copyTicketForClient } from './ticket.js';
 import { state } from '../state.js';
-import { persistWorkbook, loadExcel } from '../storage/excel.js';
+import { canReload, reload, saveOrder, deleteOrder } from '../storage/index.js';
 import { relTime } from '../ui/clock.js';
 import { toast } from '../ui/toast.js';
 import { toYmd, toHms, fmtMoney, peso, parsePesoOptional, today, escHtml } from '../utils/format.js';
@@ -26,9 +26,9 @@ export function updateEditCashUI(){
   renderCashResult(document.getElementById('edit-cash-result'), total, parsePesoOptional(document.getElementById('edit-recibido')?.value));
 }
 
-export async function reloadExcel(){
-  if(!state.fileHandle){ toast('No hay Excel cargado.','error'); return; }
-  try{ await loadExcel(state.fileHandle); toast('✔ Excel recargado','success'); refreshDashboard(); renderOrdersTable(); renderInventory(); }
+export async function reloadData(){
+  if(!canReload()){ toast('No hay datos cargados.','error'); return; }
+  try{ await reload(); toast('✔ Datos recargados','success'); refreshDashboard(); renderOrdersTable(); renderInventory(); }
   catch(e){ toast('Error: '+e.message,'error'); }
 }
 
@@ -38,7 +38,7 @@ export async function updateOrderStatus(numOrden,newEstado){
   const prev=snapshotOrderInv(o);
   o['Estado']=newEstado;
   const invRes=syncOrderInventory(o,{prev});
-  try{ await persistWorkbook(); toast(`✔ #${String(numOrden).padStart(4,'0')} → ${newEstado}`,'success');
+  try{ await saveOrder(o); toast(`✔ #${String(numOrden).padStart(4,'0')} → ${newEstado}`,'success');
     notifyInventoryResult(invRes);
     refreshDashboard(); renderOrdersTable(); renderInventory();
   }catch(e){ toast('Error: '+e.message,'error'); }
@@ -219,7 +219,7 @@ export function initOrderDetailModal(){
 
     try{
       const invRes=syncOrderInventory(order,{prev});
-      await persistWorkbook();
+      await saveOrder(order);
       toast(`✔ Orden #${String(numOrden).padStart(4,'0')} actualizada`,'success');
       notifyInventoryResult(invRes);
       modal.classList.add('hidden'); refreshDashboard(); renderOrdersTable(); renderInventory();
@@ -234,7 +234,7 @@ export function initOrderDetailModal(){
     if(order) syncOrderInventory(order,{deleted:true, prev:snapshotOrderInv(order)});
     state.allOrders=state.allOrders.filter(o=>String(o['Num_Orden'])!==String(numOrden));
     try{
-      await persistWorkbook();
+      await deleteOrder(numOrden);
       toast(`🗑️ Orden #${String(numOrden).padStart(4,'0')} eliminada`,'info');
       modal.classList.add('hidden'); refreshDashboard(); renderOrdersTable(); renderInventory();
     }catch(e){ toast('Error: '+e.message,'error'); }
@@ -319,7 +319,7 @@ export function initOrdersFilter(){
     const el=document.getElementById(id);
     if(el){ el.addEventListener('input',renderOrdersTable); el.addEventListener('change',renderOrdersTable); }
   });
-  document.getElementById('btn-reload').addEventListener('click',reloadExcel);
+  document.getElementById('btn-reload').addEventListener('click',reloadData);
   document.getElementById('btn-clear-date').addEventListener('click',()=>{
     document.getElementById('filter-fecha').value=''; renderOrdersTable();
   });

@@ -3,7 +3,7 @@
    Permite uso offline básico
 ════════════════════════════════════════ */
 
-const CACHE_NAME = 'smashiza-pos-v19';
+const CACHE_NAME = 'smashiza-pos-v20';
 
 const ASSETS = [
   './',
@@ -20,6 +20,7 @@ const ASSETS = [
   './src/domain/orders.js',
   './src/domain/inventory.js',
   './src/storage/index.js',
+  './src/storage/events.js',
   './src/storage/excel.js',
   './src/features/setup.js',
   './src/features/nav.js',

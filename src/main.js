@@ -5,7 +5,7 @@ import { initDashboardFilter } from './features/dashboard.js';
 import { initInventoryTab } from './features/inventario.js';
 import { renderMenuEditor, initAddProductModal, initAddCategoryModal } from './features/menu-editor.js';
 import { initNav } from './features/nav.js';
-import { stampNewOrderWhen, initLiveOrderWhen, initClienteAutocomplete, renderMenuGrid, initMenuSearch, initCategoryBtns, initAjuste, initPayToggle, saveOrder, clearForm } from './features/nueva-orden.js';
+import { stampNewOrderWhen, initLiveOrderWhen, initClienteAutocomplete, renderMenuGrid, initMenuSearch, initCategoryBtns, initAjuste, initPayToggle, submitOrder, clearForm } from './features/nueva-orden.js';
 import { initOrderDetailModal, initOrdersFilter } from './features/ordenes.js';
 import { setupScreen, initChangeExcel } from './features/setup.js';
 import { collectNewOrderTicket, copyTicketForClient } from './features/ticket.js';
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   initClientsTab();
   initBATab();
   initInventoryTab();
-  document.getElementById('btn-guardar-orden').addEventListener('click',saveOrder);
+  document.getElementById('btn-guardar-orden').addEventListener('click',submitOrder);
   document.getElementById('btn-copiar-ticket')?.addEventListener('click',()=>copyTicketForClient(collectNewOrderTicket()));
   document.getElementById('btn-limpiar-orden').addEventListener('click',clearForm);
   stampNewOrderWhen();

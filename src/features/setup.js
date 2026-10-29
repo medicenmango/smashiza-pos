@@ -4,11 +4,37 @@ import { renderMenuEditor, refreshCategoryLabels } from './menu-editor.js';
 import { renderMenuGrid, updateOrderNumBadge } from './nueva-orden.js';
 import { renderOrdersTable } from './ordenes.js';
 import { state } from '../state.js';
-import { pickFile, handleFromDrop, loadExcel, startDemoMode, createNewExcel } from '../storage/excel.js';
+import { pickFile, handleFromDrop, loadExcel, loadDemoWorkbook, createNewExcel, canWriteHandle } from '../storage/excel.js';
+import { onDataLoaded } from '../storage/index.js';
 import { toast } from '../ui/toast.js';
 import { today } from '../utils/format.js';
 
+function updateWriteMode(){
+  const el=document.getElementById('excel-write-mode');
+  if(!el) return;
+  if(state.demoMode){
+    el.textContent='🎮 MODO PRUEBA';
+    el.className='file-write-mode demo';
+    return;
+  }
+  if(canWriteHandle(state.fileHandle)){
+    el.textContent='✎ EN ARCHIVO';
+    el.className='file-write-mode ok';
+  } else {
+    el.textContent='⚠ SOLO LECTURA';
+    el.className='file-write-mode warn';
+  }
+}
+
+function onLoaded(){
+  renderMenuGrid(); renderMenuEditor(); refreshCategoryLabels();
+  document.getElementById('active-filename').textContent=state.fileName;
+  document.getElementById('modal-current-file').textContent=state.fileName;
+  updateWriteMode();
+}
+
 export function setupScreen(){
+  onDataLoaded(onLoaded);
   const dz=document.getElementById('drop-zone');
   const st=document.getElementById('setup-status');
   function showSt(msg,type){ st.textContent=msg; st.className=`status-msg ${type}`; st.classList.remove('hidden'); }
@@ -18,6 +44,22 @@ export function setupScreen(){
       setTimeout(goToApp,700);
     }catch(e){ showSt('Error: '+e.message,'error'); }
   }
+  async function startDemoMode(){
+    try{
+      showSt('Cargando modo prueba...','info');
+      await loadDemoWorkbook();
+      showSt('✔ Modo prueba listo.','success');
+      setTimeout(()=>{
+        goToApp();
+        toast('Modo prueba lleno: menú, recetas, costos, inventario, clientes y órdenes de muestra. No se guarda en tu Excel.','info',8000);
+      },400);
+    }catch(e){ showSt('Error: '+e.message,'error'); }
+  }
+  async function startNewExcel(){
+    if(!await createNewExcel()) return;
+    goToApp();
+    toast('✔ Excel creado. Guárdalo en OneDrive si aún no está ahí.','success',5000);
+  }
   dz.addEventListener('click',async()=>{ const h=await pickFile(); if(h) await handleFile(h); });
   dz.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' ') { e.preventDefault(); dz.click(); } });
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
@@ -26,7 +68,7 @@ export function setupScreen(){
     e.preventDefault(); dz.classList.remove('drag-over');
     const h=await handleFromDrop(e.dataTransfer); if(h) await handleFile(h);
   });
-  document.getElementById('btn-create-excel').addEventListener('click',e=>{e.preventDefault();createNewExcel();});
+  document.getElementById('btn-create-excel').addEventListener('click',e=>{e.preventDefault();startNewExcel();});
   const demoBtn=document.getElementById('btn-demo-mode');
   if(demoBtn) demoBtn.addEventListener('click',e=>{ e.preventDefault(); startDemoMode(); });
 }

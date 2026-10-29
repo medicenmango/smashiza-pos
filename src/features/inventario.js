@@ -1,9 +1,9 @@
 import { findInvItem, invLevel, recipeLinesForProduct, pushMovement, lowInvItems, restockBuyItems, productsMissingRecipe, duplicateRecipePairs, writeProductRecipes } from '../domain/inventory.js';
 import { MENU, menuCatsInOrder, orderedMenuItems, getCatLabel } from '../domain/menu.js';
 import { renderDashInvAlerts } from './dashboard.js';
-import { reloadExcel } from './ordenes.js';
+import { reloadData } from './ordenes.js';
 import { state } from '../state.js';
-import { persistWorkbook, downloadInvTemplate } from '../storage/excel.js';
+import { isReady, saveInventory, downloadInvTemplate } from '../storage/index.js';
 import { toast } from '../ui/toast.js';
 import { escHtml, fmtInvQty, normInvName } from '../utils/format.js';
 
@@ -23,8 +23,8 @@ export function notifyInventoryResult(res){
 }
 
 export async function persistInv(){
-  if(!state.workbook){ toast('⚠️ Carga un Excel primero.','error'); return false; }
-  try{ await persistWorkbook(); renderInventory(); renderDashInvAlerts(); return true; }
+  if(!isReady()){ toast('⚠️ Carga tus datos primero.','error'); return false; }
+  try{ await saveInventory(); renderInventory(); renderDashInvAlerts(); return true; }
   catch(e){ toast('Error al guardar: '+e.message,'error'); return false; }
 }
 
@@ -271,7 +271,7 @@ export function initInventoryTab(){
     toast('✔ Ingrediente agregado','success');
   });
   document.getElementById('btn-inv-template').addEventListener('click',downloadInvTemplate);
-  document.getElementById('btn-inv-reload').addEventListener('click',reloadExcel);
+  document.getElementById('btn-inv-reload').addEventListener('click',reloadData);
   const invSearch=document.getElementById('inv-search');
   if(invSearch) invSearch.addEventListener('input',renderInventory);
   initRecipeBoard();

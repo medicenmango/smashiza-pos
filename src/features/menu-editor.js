@@ -2,7 +2,7 @@ import { recordMenuPrice, markCatalogOffMenu } from '../domain/catalog.js';
 import { MENU_DEFAULT, CAT_LABELS, MENU, getCatLabel } from '../domain/menu.js';
 import { renderMenuGrid, renderCategoryBtns } from './nueva-orden.js';
 import { state } from '../state.js';
-import { persistMenuCatalog } from '../storage/index.js';
+import { saveMenuCatalog } from '../storage/index.js';
 import { toast } from '../ui/toast.js';
 import { uid, escHtml } from '../utils/format.js';
 
@@ -60,7 +60,7 @@ export function renderMenuEditor(){
         return;
       }
       CAT_LABELS[id]=label;
-      persistMenuCatalog(true);
+      saveMenuCatalog(true);
       refreshCategoryLabels();
       toast('✔ Categoría: '+label,'success');
     });
@@ -78,7 +78,7 @@ export function renderMenuEditor(){
       if(dir==='up'&&idx>0){ [orderArr[idx-1],orderArr[idx]]=[orderArr[idx],orderArr[idx-1]]; }
       else if(dir==='down'&&idx<orderArr.length-1){ [orderArr[idx+1],orderArr[idx]]=[orderArr[idx],orderArr[idx+1]]; }
       state.menuOrder[cat]=orderArr;
-      persistMenuCatalog(true); renderMenuEditor(); renderMenuGrid();
+      saveMenuCatalog(true); renderMenuEditor(); renderMenuGrid();
     });
   });
 
@@ -92,7 +92,7 @@ export function renderMenuEditor(){
         recordMenuPrice(item.name,p,item);
         item.price=p;
       } else item[field]=inp.value.trim()||item[field];
-      persistMenuCatalog(); renderMenuGrid();
+      saveMenuCatalog(); renderMenuGrid();
       if(field==='cat') renderMenuEditor();
     });
   });
@@ -104,7 +104,7 @@ export function renderMenuEditor(){
       const item=MENU.find(i=>i.id===btn.dataset.id);
       if(item) markCatalogOffMenu(item);
       MENU.splice(MENU.findIndex(i=>i.id===btn.dataset.id),1);
-      persistMenuCatalog(true); renderMenuEditor(); renderMenuGrid();
+      saveMenuCatalog(true); renderMenuEditor(); renderMenuGrid();
     });
   });
 
@@ -114,7 +114,7 @@ export function renderMenuEditor(){
       const cat=btn.dataset.cat;
       if(MENU.some(i=>i.cat===cat)){ toast('⚠️ Mueve o elimina los productos primero','error'); return; }
       delete CAT_LABELS[cat];
-      persistMenuCatalog(true); renderMenuEditor(); renderMenuGrid();
+      saveMenuCatalog(true); renderMenuEditor(); renderMenuGrid();
       toast('✔ Categoría eliminada','success');
     });
   });
@@ -127,7 +127,7 @@ export function renderMenuEditor(){
     Object.keys(CAT_LABELS).forEach(k=>delete CAT_LABELS[k]);
     Object.assign(CAT_LABELS,{smash:'SMASH BURGERS',especial:'PAPAS',extras:'EXTRAS & COMPLEMENTOS',bebidas:'BEBIDAS'});
     state.menuOrder={};
-    persistMenuCatalog(true); renderMenuEditor(); renderMenuGrid();
+    saveMenuCatalog(true); renderMenuEditor(); renderMenuGrid();
     toast('✔ Menú restaurado','success');
   });
 }
@@ -173,7 +173,7 @@ export function initAddProductModal(){
     if(!name){ toast('Escribe un nombre','error'); return; }
     MENU.push({id:uid(),cat,emoji,name,price});
     recordMenuPrice(name,price,{emoji,cat,name});
-    persistMenuCatalog(true); modal.classList.add('hidden');
+    saveMenuCatalog(true); modal.classList.add('hidden');
     renderMenuEditor(); renderMenuGrid(); renderCategoryBtns();
     toast('✔ Producto agregado','success');
   });
@@ -189,7 +189,7 @@ export function initAddCategoryModal(){
     if(!rawName||!label){ toast('Llena nombre y etiqueta','error'); return; }
     if(CAT_LABELS[rawName]){ toast('Esa categoría ya existe','error'); return; }
     CAT_LABELS[rawName]=label;
-    persistMenuCatalog(true); modal.classList.add('hidden');
+    saveMenuCatalog(true); modal.classList.add('hidden');
     renderMenuEditor(); renderMenuGrid(); renderCategoryBtns();
     toast(`✔ Categoría "${label}" creada`,'success');
   });

@@ -1,9 +1,7 @@
 import { loadCatalog, saveCatalog } from '../domain/catalog.js';
 import { CAT_LABELS, saveMenuToStorage, MENU, saveMenuOrder, menuCatsInOrder, orderedMenuItems } from '../domain/menu.js';
-import { renderMenuEditor, refreshCategoryLabels } from '../features/menu-editor.js';
-import { renderMenuGrid } from '../features/nueva-orden.js';
-import { goToApp } from '../features/setup.js';
 import { state } from '../state.js';
+import { emitDataLoaded } from './events.js';
 import { toast } from '../ui/toast.js';
 import { toYmd, toHms, uid } from '../utils/format.js';
 
@@ -45,23 +43,6 @@ export const EXCEL_PICKER_OPTS = {
 
 export function canWriteHandle(h){
   return !!(h && typeof h.createWritable === 'function');
-}
-
-export function updateWriteMode(){
-  const el=document.getElementById('excel-write-mode');
-  if(!el) return;
-  if(state.demoMode){
-    el.textContent='🎮 MODO PRUEBA';
-    el.className='file-write-mode demo';
-    return;
-  }
-  if(canWriteHandle(state.fileHandle)){
-    el.textContent='✎ EN ARCHIVO';
-    el.className='file-write-mode ok';
-  } else {
-    el.textContent='⚠ SOLO LECTURA';
-    el.className='file-write-mode warn';
-  }
 }
 
 export async function ensureWriteAccess(h){
@@ -320,10 +301,7 @@ export async function applyWorkbook(wb, opts={}){
       toast('✔ Menú y costos del navegador se copiaron al Excel. Si Safari descargó copia, reemplaza el original.','success',7000);
     }catch(e){ toast('Menú listo en memoria, pero no se pudo escribir el Excel: '+e.message,'error',6000); }
   }
-  renderMenuGrid(); renderMenuEditor(); refreshCategoryLabels();
-  document.getElementById('active-filename').textContent=state.fileName;
-  document.getElementById('modal-current-file').textContent=state.fileName;
-  updateWriteMode();
+  emitDataLoaded();
 }
 
 export async function loadExcel(handle){
@@ -335,30 +313,20 @@ export async function loadExcel(handle){
   });
 }
 
-export async function startDemoMode(){
-  const st=document.getElementById('setup-status');
-  const showSt=(msg,type)=>{ if(!st) return; st.textContent=msg; st.className=`status-msg ${type}`; st.classList.remove('hidden'); };
-  try{
-    if(typeof buildSmashizaDemo!=='function') throw new Error('Faltan los datos de prueba');
-    showSt('Cargando modo prueba...','info');
-    const demo=buildSmashizaDemo();
-    const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, rowsToSheet(HEADERS, demo.orders), 'Ordenes');
-    XLSX.utils.book_append_sheet(wb, rowsToSheet(INV_HEADERS, demo.inventory), INV_SHEET);
-    XLSX.utils.book_append_sheet(wb, rowsToSheet(REC_HEADERS, demo.recipes), REC_SHEET);
-    XLSX.utils.book_append_sheet(wb, rowsToSheet(MOV_HEADERS, demo.movements), MOV_SHEET);
-    XLSX.utils.book_append_sheet(wb, rowsToSheet(MENU_HEADERS, demo.menu), MENU_SHEET);
-    XLSX.utils.book_append_sheet(wb, rowsToSheet(CAT_HEADERS, demo.cats), CAT_SHEET);
-    XLSX.utils.book_append_sheet(wb, rowsToSheet(COST_HEADERS, demo.costs), COST_SHEET);
-    XLSX.utils.book_append_sheet(wb, rowsToSheet(CATALOG_HEADERS, demo.catalog), CATALOG_SHEET);
-    XLSX.utils.book_append_sheet(wb, rowsToSheet(PRICE_HEADERS, demo.priceHist), PRICE_SHEET);
-    await applyWorkbook(wb,{ demo:true, fileName:'MODO PRUEBA (no guarda)' });
-    showSt('✔ Modo prueba listo.','success');
-    setTimeout(()=>{
-      goToApp();
-      toast('Modo prueba lleno: menú, recetas, costos, inventario, clientes y órdenes de muestra. No se guarda en tu Excel.','info',8000);
-    },400);
-  }catch(e){ showSt('Error: '+e.message,'error'); }
+export async function loadDemoWorkbook(){
+  if(typeof buildSmashizaDemo!=='function') throw new Error('Faltan los datos de prueba');
+  const demo=buildSmashizaDemo();
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, rowsToSheet(HEADERS, demo.orders), 'Ordenes');
+  XLSX.utils.book_append_sheet(wb, rowsToSheet(INV_HEADERS, demo.inventory), INV_SHEET);
+  XLSX.utils.book_append_sheet(wb, rowsToSheet(REC_HEADERS, demo.recipes), REC_SHEET);
+  XLSX.utils.book_append_sheet(wb, rowsToSheet(MOV_HEADERS, demo.movements), MOV_SHEET);
+  XLSX.utils.book_append_sheet(wb, rowsToSheet(MENU_HEADERS, demo.menu), MENU_SHEET);
+  XLSX.utils.book_append_sheet(wb, rowsToSheet(CAT_HEADERS, demo.cats), CAT_SHEET);
+  XLSX.utils.book_append_sheet(wb, rowsToSheet(COST_HEADERS, demo.costs), COST_SHEET);
+  XLSX.utils.book_append_sheet(wb, rowsToSheet(CATALOG_HEADERS, demo.catalog), CATALOG_SHEET);
+  XLSX.utils.book_append_sheet(wb, rowsToSheet(PRICE_HEADERS, demo.priceHist), PRICE_SHEET);
+  await applyWorkbook(wb,{ demo:true, fileName:'MODO PRUEBA (no guarda)' });
 }
 
 export async function createNewExcel(){
@@ -383,15 +351,25 @@ export async function createNewExcel(){
       await w.write(new Blob([arr],{type:'application/octet-stream'})); await w.close();
       if(!ok) toast('Archivo creado, pero sin permiso de edición. Vuelve a elegirlo.','info',6000);
       await loadExcel(h);
-      goToApp();
-      toast('✔ Excel creado. Guárdalo en OneDrive si aún no está ahí.','success',5000);
-      return;
-    }catch(e){ if(e.name==='AbortError') return; }
+      return true;
+    }catch(e){ if(e.name==='AbortError') return false; }
   }
   const url=URL.createObjectURL(new Blob([arr],{type:'application/octet-stream'}));
   const a=document.createElement('a'); a.href=url; a.download='LaSmashiza_Ordenes.xlsx'; a.click();
   URL.revokeObjectURL(url); toast('📥 Excel descargado. Selecciónalo arriba.','info',5000);
+  return false;
 }
+
+export const excelBackend = {
+  isReady: ()=>!!state.workbook,
+  canReload: ()=>!!state.fileHandle,
+  reload: ()=>loadExcel(state.fileHandle),
+  saveNewOrder: ()=>persistWorkbook(),
+  saveOrder: ()=>persistWorkbook(),
+  deleteOrder: ()=>persistWorkbook(),
+  saveInventory: ()=>persistWorkbook(),
+  saveMenuCatalog: ()=>persistWorkbook(),
+};
 
 export function downloadInvTemplate(){
   const wb=XLSX.utils.book_new();

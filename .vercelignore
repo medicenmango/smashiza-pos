@@ -1,0 +1,8 @@
+powerbi/
+_brand-mr-coqueto/
+node_modules/
+.cursor/
+package.json
+package-lock.json
+eslint.config.js
+INSTRUCCIONES.md
