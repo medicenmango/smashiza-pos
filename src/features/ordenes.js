@@ -1,7 +1,7 @@
 import { ESTADOS } from '../constants.js';
 import { snapshotOrderInv, syncOrderInventory } from '../domain/inventory.js';
 import { MENU } from '../domain/menu.js';
-import { cashBreakdown, todayCashInDrawer } from '../domain/orders.js';
+import { cashBreakdown, todayCashInDrawer, orderItems, setOrderItems } from '../domain/orders.js';
 import { refreshDashboard } from './dashboard.js';
 import { notifyInventoryResult, renderInventory } from './inventario.js';
 import { renderCashResult, applyCashQuick } from './nueva-orden.js';
@@ -64,16 +64,14 @@ export function openOrderDetail(numOrden){
   if(!order) return;
   const slug=s=>(s||'').toLowerCase().replace(/\s+/g,'-');
 
-  // Parse existing products into editCart
-  const productos=String(order['Productos']||'').split(' | ').filter(Boolean);
-  const cantidades=String(order['Cantidades']||'').split(' | ');
-  const editCart=productos.map((p,i)=>{
-    const menuItem=MENU.find(m=>m.name===p);
+  const editCart=orderItems(order).map(i=>{
+    const menuItem=MENU.find(m=>m.id===i.Producto_Id)||MENU.find(m=>m.name===i.Producto);
     return {
-      name:p,
+      id:i.Producto_Id,
+      name:i.Producto,
       emoji:menuItem?menuItem.emoji:'🍽️',
-      price:menuItem?menuItem.price:0,
-      qty:parseInt(cantidades[i])||1,
+      price:i.Precio_Unitario,
+      qty:i.Cantidad,
     };
   });
 
@@ -155,7 +153,7 @@ export function renderModalMenuPicker(){
       const editCart=modal._editCart;
       const item=MENU.find(i=>i.id===btn.dataset.id); if(!item) return;
       const ex=editCart.find(c=>c.name===item.name);
-      if(ex) ex.qty++; else editCart.push({name:item.name,emoji:item.emoji,price:item.price,qty:1});
+      if(ex) ex.qty++; else editCart.push({id:item.id,name:item.name,emoji:item.emoji,price:item.price,qty:1});
       refreshEditCart();
     });
   });
@@ -214,8 +212,9 @@ export function initOrderDetailModal(){
     if(!fecha){ toast('Pon una fecha válida','error'); return; }
     order['Fecha']=fecha;
     order['Estado']     =document.getElementById('detail-estado-select').value;
-    order['Productos']  =editCart.map(c=>c.name).join(' | ');
-    order['Cantidades'] =editCart.map(c=>`${c.qty}x`).join(' | ');
+    setOrderItems(order, editCart.map(c=>({
+      Producto_Id:c.id||'', Producto:c.name, Cantidad:c.qty, Precio_Unitario:c.price,
+    })));
 
     try{
       const invRes=syncOrderInventory(order,{prev});

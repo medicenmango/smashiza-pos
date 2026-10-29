@@ -1,3 +1,5 @@
+import { priceAt } from './catalog.js';
+import { MENU } from './menu.js';
 import { state } from '../state.js';
 import { peso, parsePesoOptional, today } from '../utils/format.js';
 
@@ -39,8 +41,28 @@ export function getNextOrderNum(orders){
   return Math.max(...orders.map(o=>parseInt(o['Num_Orden'])||0))+1;
 }
 
-export function parseOrderItems(order){
+export function itemsFromLegacy(order){
   const prods=String(order['Productos']||'').split(' | ').filter(Boolean);
   const qtys =String(order['Cantidades']||'').split(' | ');
-  return prods.map((name,i)=>({ name, qty:parseInt(qtys[i])||1 }));
+  return prods.map((name,i)=>({
+    Producto_Id: MENU.find(m=>m.name===name)?.id||'',
+    Producto: name,
+    Cantidad: parseInt(qtys[i])||1,
+    Precio_Unitario: priceAt(name, order['Fecha']),
+  }));
+}
+
+export function orderItems(order){
+  if(!order['Items']) order['Items']=itemsFromLegacy(order);
+  return order['Items'];
+}
+
+export function setOrderItems(order, items){
+  order['Items']=items;
+  order['Productos']=items.map(i=>i.Producto).join(' | ');
+  order['Cantidades']=items.map(i=>`${i.Cantidad}x`).join(' | ');
+}
+
+export function parseOrderItems(order){
+  return orderItems(order).map(i=>({ name:i.Producto, qty:i.Cantidad, price:Number(i.Precio_Unitario)||0 }));
 }

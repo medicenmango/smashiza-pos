@@ -1,6 +1,6 @@
 import { syncOrderInventory } from '../domain/inventory.js';
 import { CAT_LABELS, MENU, getCatLabel } from '../domain/menu.js';
-import { cashBreakdown, orderProductSummary, getNextOrderNum } from '../domain/orders.js';
+import { cashBreakdown, orderProductSummary, getNextOrderNum, setOrderItems } from '../domain/orders.js';
 import { refreshDashboard } from './dashboard.js';
 import { notifyInventoryResult, renderInventory } from './inventario.js';
 import { openOrderDetail, badgeClass } from './ordenes.js';
@@ -351,13 +351,15 @@ export async function submitOrder(){
     Hora:fmtTime(now),
     Cliente:document.getElementById('f-cliente').value.trim()||'Sin nombre',
     Direccion:document.getElementById('f-direccion').value.trim(),
-    Productos:state.cart.map(c=>c.item.name).join(' | '),
-    Cantidades:state.cart.map(c=>`${c.qty}x`).join(' | '),
+    Productos:'', Cantidades:'',
     Comentarios:document.getElementById('f-comentarios').value.trim(),
     Metodo_Pago:state.payMethod, Ajuste:state.ajuste||0, Total:cartTotal(),
     Recibido:'', Cambio:'',
     Estado:document.getElementById('f-estado').value,
   };
+  setOrderItems(newRow, state.cart.map(c=>({
+    Producto_Id:c.item.id, Producto:c.item.name, Cantidad:c.qty, Precio_Unitario:c.item.price,
+  })));
   if(state.payMethod==='Efectivo'){
     const cash=cashBreakdown(newRow.Total, parsePesoOptional(document.getElementById('f-recibido')?.value));
     newRow.Recibido=cash.recibido; newRow.Cambio=cash.cambio;

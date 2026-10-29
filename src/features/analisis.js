@@ -319,8 +319,7 @@ export function renderBA(){
 
   const itemSales={};
   orders.forEach(o=>{
-    parseOrderItems(o).forEach(({name,qty})=>{
-      const price=priceAt(name, o['Fecha']);
+    parseOrderItems(o).forEach(({name,qty,price})=>{
       const cost=costs[name]||0;
       if(!itemSales[name]) itemSales[name]={qty:0,revenue:0,cost:0};
       itemSales[name].qty+=qty;
@@ -615,8 +614,7 @@ export function renderBA(){
     let sumP=0,cntP=0;
     orders.forEach(o=>{
       let op=0;
-      parseOrderItems(o).forEach(({name,qty})=>{
-        const price=priceAt(name, o['Fecha']);
+      parseOrderItems(o).forEach(({name,qty,price})=>{
         const cost=costs[name];
         if(cost!==undefined) op+=(price-cost)*qty;
       });
