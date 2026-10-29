@@ -139,6 +139,12 @@ function stampNewOrderWhen(){
   const f=document.getElementById('f-fecha');
   if(f) f.value=fmtDate(now);
 }
+function initLiveOrderWhen(){
+  const refresh=()=>{ if(!document.hidden) stampNewOrderWhen(); };
+  document.addEventListener('visibilitychange', refresh);
+  window.addEventListener('focus', refresh);
+  window.addEventListener('pageshow', refresh);
+}
 function fmtMoney(n){ return '$'+String(peso(n)).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
 function peso(n){ return Math.round(Number(n)||0); }
 function parsePesoOptional(v){
@@ -662,8 +668,7 @@ function initNav(){
       if(btn.dataset.tab==='tab-dashboard') refreshDashboard();
       if(btn.dataset.tab==='tab-nueva-orden'){
         renderLiveQueue();
-        const f=document.getElementById('f-fecha');
-        if(f && !f.value) stampNewOrderWhen();
+        stampNewOrderWhen();
       }
       if(btn.dataset.tab==='tab-ordenes')   renderOrdersTable();
       if(btn.dataset.tab==='tab-menu')      renderMenuEditor();
@@ -1187,7 +1192,7 @@ async function saveOrder(){
   const numOrden=getNextOrderNum(state.allOrders);
   const newRow={
     Num_Orden:numOrden,
-    Fecha:toYmd(document.getElementById('f-fecha')?.value)||fmtDate(now),
+    Fecha:fmtDate(now),
     Hora:fmtTime(now),
     Cliente:document.getElementById('f-cliente').value.trim()||'Sin nombre',
     Direccion:document.getElementById('f-direccion').value.trim(),
@@ -2894,6 +2899,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('btn-copiar-ticket')?.addEventListener('click',()=>copyTicketForClient(collectNewOrderTicket()));
   document.getElementById('btn-limpiar-orden').addEventListener('click',clearForm);
   stampNewOrderWhen();
+  initLiveOrderWhen();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
   if(/[?&]test=1(?:&|$)/.test(location.search)) runInventorySelfTest();
 });
