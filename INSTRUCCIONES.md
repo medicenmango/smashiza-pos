@@ -15,7 +15,7 @@ smashiza-pos/
 │   ├── state.js        ← Estado global
 │   ├── utils/  ui/     ← Formatos, toasts, reloj
 │   ├── domain/         ← Reglas de negocio (menú, catálogo, órdenes, inventario)
-│   ├── storage/        ← Persistencia (hoy: Excel)
+│   ├── storage/        ← Persistencia: supabase.js (nube, principal) y excel.js (local / respaldo)
 │   └── features/       ← Cada pestaña de la app
 ├── demo-data.js        ← Datos del modo prueba
 ├── manifest.json       ← Configuración PWA

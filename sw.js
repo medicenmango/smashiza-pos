@@ -3,13 +3,14 @@
    Permite uso offline básico
 ════════════════════════════════════════ */
 
-const CACHE_NAME = 'smashiza-pos-v21';
+const CACHE_NAME = 'smashiza-pos-v22';
 
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './src/main.js',
+  './src/config.js',
   './src/constants.js',
   './src/state.js',
   './src/utils/format.js',
@@ -22,6 +23,8 @@ const ASSETS = [
   './src/storage/index.js',
   './src/storage/events.js',
   './src/storage/excel.js',
+  './src/storage/rows.js',
+  './src/storage/supabase.js',
   './src/features/setup.js',
   './src/features/nav.js',
   './src/features/nueva-orden.js',
@@ -35,6 +38,7 @@ const ASSETS = [
   './manifest.json',
   './demo-data.js',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js',
   'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Roboto:wght@400;700&display=swap',
 ];
 
@@ -64,6 +68,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   // Skip non-GET and cross-origin file writes
   if (e.request.method !== 'GET') return;
+  // Live data (Supabase API) must never come from cache.
+  if (new URL(e.request.url).hostname.endsWith('.supabase.co')) return;
 
   e.respondWith(
     caches.match(e.request).then(cached => {

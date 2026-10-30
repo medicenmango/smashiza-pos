@@ -368,7 +368,7 @@ export async function submitOrder(){
   const invRes=syncOrderInventory(newRow);
   try{
     await saveNewOrder(newRow);
-    toast(`✔ Orden #${String(numOrden).padStart(4,'0')} guardada`,'success');
+    toast(`✔ Orden #${String(newRow.Num_Orden).padStart(4,'0')} guardada`,'success');
     notifyInventoryResult(invRes);
     clearForm(); updateOrderNumBadge(); refreshDashboard(); renderInventory();
   }catch(e){ toast('Error al guardar: '+e.message,'error',5000); }
