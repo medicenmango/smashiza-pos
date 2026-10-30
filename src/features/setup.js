@@ -5,8 +5,10 @@ import { renderMenuGrid, updateOrderNumBadge } from './nueva-orden.js';
 import { renderOrdersTable } from './ordenes.js';
 import { state } from '../state.js';
 import { pickFile, handleFromDrop, loadExcel, loadDemoWorkbook, createNewExcel, canWriteHandle, loadWorkbookForImport, downloadBackup } from '../storage/excel.js';
+import { onSyncChange } from '../storage/events.js';
 import { onDataLoaded, useBackend } from '../storage/index.js';
-import { currentUser, signIn, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog } from '../storage/supabase.js';
+import { currentUser, signIn, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog,
+  isNetworkError, hasCache, loadFromCache, syncStatus, startAutoSync } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
 import { today } from '../utils/format.js';
 
@@ -14,8 +16,17 @@ function updateWriteMode(){
   const el=document.getElementById('excel-write-mode');
   if(!el) return;
   if(state.cloud){
-    el.textContent='☁ EN LÍNEA';
-    el.className='file-write-mode ok';
+    const { pending, offline }=syncStatus();
+    if(offline){
+      el.textContent=pending?`📴 SIN CONEXIÓN · ${pending} POR SUBIR`:'📴 SIN CONEXIÓN';
+      el.className='file-write-mode warn';
+    } else if(pending){
+      el.textContent=`⏳ SUBIENDO ${pending}`;
+      el.className='file-write-mode demo';
+    } else {
+      el.textContent='☁ EN LÍNEA';
+      el.className='file-write-mode ok';
+    }
     return;
   }
   if(state.demoMode){
@@ -53,16 +64,28 @@ function initCloudLogin(){
   const form=document.getElementById('login-form');
   const importPanel=document.getElementById('import-panel');
 
+  async function enterOffline(){
+    useBackend('supabase');
+    await loadFromCache();
+    goToApp();
+    toast('📴 Sin conexión: trabajas con los datos guardados en este dispositivo. Lo nuevo se sube solo al volver internet.','info',8000);
+  }
+
   async function enterCloud(){
     useBackend('supabase');
     showSt('Cargando datos de la nube...','info');
-    if(await countRows('orders')===0 && await countRows('menu_items')===0){
-      form.classList.add('hidden');
-      importPanel.classList.remove('hidden');
-      showSt('✔ Sesión iniciada. La base está vacía.','success');
-      return;
+    try{
+      if(await countRows('orders')===0 && await countRows('menu_items')===0){
+        form.classList.add('hidden');
+        importPanel.classList.remove('hidden');
+        showSt('✔ Sesión iniciada. La base está vacía.','success');
+        return;
+      }
+      await loadFromSupabase();
+    }catch(e){
+      if(isNetworkError(e) && await hasCache()) return enterOffline();
+      throw e;
     }
-    await loadFromSupabase();
     showSt('✔ Datos cargados.','success');
     goToApp();
   }
@@ -121,13 +144,22 @@ function initCloudLogin(){
     toast('📥 Respaldo descargado.','success');
   });
   document.getElementById('btn-logout').addEventListener('click',async()=>{
-    if(!confirm('¿Cerrar sesión en este dispositivo?')) return;
+    const { pending }=syncStatus();
+    const warn=pending
+      ? `⚠️ Hay ${pending} cambio(s) sin subir a la nube. Si cierras sesión SE PIERDEN.\n\n¿Cerrar sesión de todos modos?`
+      : '¿Cerrar sesión en este dispositivo? Se borran los datos guardados en este dispositivo.';
+    if(!confirm(warn)) return;
     await signOut();
     location.reload();
   });
 
-  currentUser().then(u=>{ if(u) return enterCloud(); })
-    .catch(e=>showSt('No se pudo conectar: '+e.message+' — recarga para reintentar.','error'));
+  onSyncChange(updateWriteMode);
+  startAutoSync();
+
+  (async()=>{
+    if(!navigator.onLine && await hasCache()) return enterOffline();
+    if(await currentUser()) return enterCloud();
+  })().catch(e=>showSt('No se pudo conectar: '+e.message+' — recarga para reintentar.','error'));
 }
 
 export function setupScreen(){
