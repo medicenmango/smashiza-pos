@@ -24,7 +24,26 @@
       </div>
       <div class="scanline-bar"></div>
     </div>
-    <div class="setup-card card">
+    <div class="setup-card card" id="cloud-card">
+      <h2 class="card-title"><span class="pixel-icon">☁️</span> ENTRAR</h2>
+      <form id="login-form" class="login-form">
+        <div class="form-group"><label>CORREO</label><input type="email" id="login-email" class="pixel-input" autocomplete="username" required/></div>
+        <div class="form-group"><label>CONTRASEÑA</label><input type="password" id="login-password" class="pixel-input" autocomplete="current-password" required/></div>
+        <button type="submit" class="btn-primary" id="btn-login">► ENTRAR</button>
+      </form>
+      <div id="import-panel" class="hidden">
+        <p class="setup-hint">Tu base en la nube está vacía. Importa tu Excel actual para subir menú, costos, inventario y todas las órdenes. Tu Excel no se modifica.</p>
+        <div class="file-drop-zone" id="import-drop-zone" role="button" tabindex="0">
+          <div class="drop-icon">📤</div>
+          <div class="drop-label">IMPORTAR MI EXCEL</div>
+          <div class="drop-sub">Haz clic o arrastra el archivo aquí</div>
+        </div>
+        <button type="button" class="btn-secondary" id="btn-start-empty">EMPEZAR SIN IMPORTAR</button>
+      </div>
+      <div id="login-status" class="status-msg hidden"></div>
+    </div>
+    <details class="setup-card card setup-legacy">
+      <summary>Otras opciones: Excel local o modo prueba</summary>
       <h2 class="card-title"><span class="pixel-icon">📂</span> CARGAR EXCEL</h2>
       <p class="setup-hint">Selecciona tu archivo Excel. Si no tienes uno, <a href="#" id="btn-create-excel">crea uno nuevo aquí</a>.</p>
       <div class="file-drop-zone" id="drop-zone" role="button" tabindex="0">
@@ -35,7 +54,7 @@
       <button type="button" class="btn-secondary btn-demo-mode" id="btn-demo-mode">🎮 PROBAR SISTEMA</button>
       <p class="setup-hint demo-hint">Entra sin cargar archivo. Trae menú, recetas, costos, inventario y órdenes de muestra. No guarda nada en tu Excel.</p>
       <div id="setup-status" class="status-msg hidden"></div>
-    </div>
+    </details>
     <div class="retro-footer">INSERT COIN TO CONTINUE ★★★</div>
   </div>
 </div>
@@ -45,10 +64,12 @@
   <header class="topbar">
     <div class="topbar-brand"><span class="brand-pixel">★ SMASHIZA POS</span></div>
     <div class="topbar-file">
-      <span class="file-label">EXCEL:</span>
+      <span class="file-label" id="file-label">EXCEL:</span>
       <span id="active-filename" class="file-name">—</span>
       <span id="excel-write-mode" class="file-write-mode"></span>
       <button class="btn-icon" id="btn-change-excel" title="Cambiar Excel">⇄</button>
+      <button class="btn-icon hidden" id="btn-backup" title="Descargar respaldo en Excel">⬇</button>
+      <button class="btn-icon hidden" id="btn-logout" title="Cerrar sesión">⏻</button>
     </div>
     <div class="topbar-time"><span id="clock">00:00</span></div>
   </header>
@@ -634,6 +655,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
 <script src="demo-data.js"></script>
 <script type="module" src="src/main.js"></script>
 </body>

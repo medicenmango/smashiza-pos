@@ -8,6 +8,7 @@ export default [
       sourceType: 'module',
       globals: {
         ...globals.browser,
+        supabase: 'readonly',
         XLSX: 'readonly',
         buildSmashizaDemo: 'readonly',
       },

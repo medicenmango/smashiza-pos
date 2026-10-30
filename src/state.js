@@ -12,4 +12,5 @@ export const state = {
   recipeUi: { cat:'all', q:'', open:new Set(), collapsed:{} },
   recipeDrafts: {},
   demoMode: false,
+  cloud: false,
 };

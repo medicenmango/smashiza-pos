@@ -1,10 +1,9 @@
-import { loadCatalog, saveCatalog } from '../domain/catalog.js';
-import { CAT_LABELS, saveMenuToStorage, MENU, saveMenuOrder, menuCatsInOrder, orderedMenuItems } from '../domain/menu.js';
 import { itemsFromLegacy, orderItems } from '../domain/orders.js';
 import { state } from '../state.js';
 import { emitDataLoaded } from './events.js';
+import { menuCatalogRows, applyMenuFromRows, applyCatalogFromRows } from './rows.js';
 import { toast } from '../ui/toast.js';
-import { toYmd, toHms, uid } from '../utils/format.js';
+import { toYmd, toHms, fmtDate } from '../utils/format.js';
 
 export const HEADERS = [
   'Num_Orden','Fecha','Hora','Cliente','Direccion',
@@ -200,82 +199,12 @@ export function writeInvSheets(){
 export function writeMenuCatalogSheets(){
   if(!state.workbook) return;
   ensureMenuSheets(state.workbook);
-  const menuRows=[];
-  menuCatsInOrder().forEach(cat=>{
-    orderedMenuItems(cat).forEach((item,idx)=>{
-      menuRows.push({ Id:item.id, Categoria:item.cat, Emoji:item.emoji, Nombre:item.name, Precio:item.price, Orden:idx });
-    });
-  });
-  const catRows=Object.entries(CAT_LABELS).map(([Id,Etiqueta])=>({Id,Etiqueta}));
-  const cat=loadCatalog();
-  const costRows=Object.entries(cat.costs||{}).filter(([,c])=>c!=null&&c!=='').map(([Producto,Costo])=>({Producto,Costo}));
-  const catalogRows=Object.entries(cat.items||{}).map(([Producto,it])=>({
-    Producto, Emoji:it.emoji||'🍽️', Categoria:it.cat||'', EnMenu:it.inMenu?'si':'no'
-  }));
-  const priceRows=[];
-  Object.entries(cat.items||{}).forEach(([Producto,it])=>{
-    (it.priceHistory||[]).forEach(h=>priceRows.push({ Producto, Desde:h.from||'2000-01-01', Precio:h.price }));
-  });
+  const { menuRows, catRows, costRows, catalogRows, priceRows }=menuCatalogRows();
   state.workbook.Sheets[MENU_SHEET]=rowsToSheet(MENU_HEADERS, menuRows);
   state.workbook.Sheets[CAT_SHEET]=rowsToSheet(CAT_HEADERS, catRows);
   state.workbook.Sheets[COST_SHEET]=rowsToSheet(COST_HEADERS, costRows);
   state.workbook.Sheets[CATALOG_SHEET]=rowsToSheet(CATALOG_HEADERS, catalogRows);
   state.workbook.Sheets[PRICE_SHEET]=rowsToSheet(PRICE_HEADERS, priceRows);
-}
-
-export function applyMenuFromExcelRows(menuRows, catRows){
-  if(catRows.length){
-    const keep=new Set(catRows.map(r=>String(r.Id||'').trim()).filter(Boolean));
-    Object.keys(CAT_LABELS).forEach(k=>{ if(!keep.has(k)) delete CAT_LABELS[k]; });
-    catRows.forEach(r=>{
-      const id=String(r.Id||'').trim(); if(!id) return;
-      CAT_LABELS[id]=String(r.Etiqueta||id).trim()||id;
-    });
-  }
-  const sorted=[...menuRows].sort((a,b)=>{
-    const ca=String(a.Categoria||'');
-    const cb=String(b.Categoria||'');
-    if(ca!==cb) return ca.localeCompare(cb);
-    return (parseInt(a.Orden)||0)-(parseInt(b.Orden)||0);
-  });
-  MENU.length=0;
-  state.menuOrder={};
-  sorted.forEach(r=>{
-    const name=String(r.Nombre||'').trim(); if(!name) return;
-    const id=String(r.Id||'').trim()||uid();
-    const cat=String(r.Categoria||'smash').trim()||'smash';
-    MENU.push({ id, cat, emoji:String(r.Emoji||'🍽️').trim()||'🍽️', name, price:Number(r.Precio)||0 });
-    if(!state.menuOrder[cat]) state.menuOrder[cat]=[];
-    state.menuOrder[cat].push(id);
-  });
-  saveMenuOrder();
-  saveMenuToStorage();
-}
-
-export function applyCatalogFromExcelRows(costRows, itemRows, histRows){
-  const costs={};
-  costRows.forEach(r=>{
-    const n=String(r.Producto||'').trim(); if(!n) return;
-    const c=parseFloat(r.Costo);
-    if(isFinite(c)&&c>0) costs[n]=c;
-  });
-  const items={};
-  itemRows.forEach(r=>{
-    const n=String(r.Producto||'').trim(); if(!n) return;
-    const flag=String(r.EnMenu||'si').trim().toLowerCase();
-    items[n]={
-      emoji:String(r.Emoji||'🍽️').trim()||'🍽️',
-      cat:String(r.Categoria||'').trim(),
-      inMenu:!(flag==='no'||flag==='0'||flag==='false'),
-      priceHistory:[],
-    };
-  });
-  histRows.forEach(r=>{
-    const n=String(r.Producto||'').trim(); if(!n) return;
-    if(!items[n]) items[n]={ emoji:'🍽️', cat:'', inMenu:false, priceHistory:[] };
-    items[n].priceHistory.push({ from:String(r.Desde||'2000-01-01'), price:Number(r.Precio)||0 });
-  });
-  saveCatalog({ costs, items });
 }
 
 export function hydrateMenuCatalogFromWorkbook(wb){
@@ -286,9 +215,9 @@ export function hydrateMenuCatalogFromWorkbook(wb){
   const itemRows=parseNamedSheet(wb, CATALOG_SHEET, CATALOG_HEADERS);
   const histRows=parseNamedSheet(wb, PRICE_SHEET, PRICE_HEADERS);
   let needSave=false;
-  if(menuRows.length) applyMenuFromExcelRows(menuRows, catRows);
+  if(menuRows.length) applyMenuFromRows(menuRows, catRows);
   else needSave=true;
-  if(costRows.length||itemRows.length||histRows.length) applyCatalogFromExcelRows(costRows, itemRows, histRows);
+  if(costRows.length||itemRows.length||histRows.length) applyCatalogFromRows(costRows, itemRows, histRows);
   else needSave=true;
   return needSave;
 }
@@ -302,13 +231,37 @@ export function parseOrders(wb){
   });
 }
 
-export async function persistWorkbook(){
+function writeAllSheets(){
   const rows=[HEADERS,...state.allOrders.map(o=>HEADERS.map(h=>o[h]??''))];
   state.workbook.Sheets[state.sheetName]=XLSX.utils.aoa_to_sheet(rows);
   writeDetailSheet();
   writeInvSheets();
   writeMenuCatalogSheets();
+}
+
+export async function persistWorkbook(){
+  writeAllSheets();
   await saveWorkbook();
+}
+
+export function downloadBackup(){
+  const prev=state.workbook;
+  state.workbook=XLSX.utils.book_new();
+  try{
+    ensureSheet(state.workbook);
+    writeAllSheets();
+    const arr=XLSX.write(state.workbook,{bookType:'xlsx',type:'array'});
+    const url=URL.createObjectURL(new Blob([arr],{type:'application/octet-stream'}));
+    const a=document.createElement('a'); a.href=url; a.download=`LaSmashiza_Respaldo_${fmtDate()}.xlsx`; a.click();
+    URL.revokeObjectURL(url);
+  } finally { state.workbook=prev; }
+}
+
+// Loads a workbook into memory without keeping a file handle or writing back to it.
+export async function loadWorkbookForImport(handle){
+  const ab=await readFileHandle(handle);
+  const wb=XLSX.read(ab,{type:'array',cellDates:true});
+  await applyWorkbook(wb,{ importOnly:true, fileName:handle.name||handle._file?.name||'archivo.xlsx' });
 }
 
 export async function applyWorkbook(wb, opts={}){
@@ -317,7 +270,8 @@ export async function applyWorkbook(wb, opts={}){
   ensureMenuSheets(wb);
   state.workbook=wb;
   state.demoMode=!!opts.demo;
-  if(opts.handle) state.fileHandle=opts.handle;
+  if(opts.importOnly) state.fileHandle=null;
+  else if(opts.handle) state.fileHandle=opts.handle;
   else if(opts.demo){
     state.fileHandle={
       name: opts.fileName||'MODO PRUEBA',
@@ -333,7 +287,7 @@ export async function applyWorkbook(wb, opts={}){
   const migrated=hydrateMenuCatalogFromWorkbook(wb);
   state._hydrating=false;
   attachOrderItems(wb);
-  if(migrated && !state.demoMode){
+  if(migrated && !state.demoMode && !opts.importOnly){
     writeMenuCatalogSheets();
     try{
       await saveWorkbook();

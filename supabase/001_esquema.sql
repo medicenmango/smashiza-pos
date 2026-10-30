@@ -14,7 +14,7 @@ create table if not exists public.menu_items (
   id         text primary key,
   category   text not null,
   emoji      text not null default '',
-  name       text not null unique,
+  name       text not null,
   price      numeric(10,2) not null check (price >= 0),
   sort       integer not null default 0,
   updated_at timestamptz not null default now()
