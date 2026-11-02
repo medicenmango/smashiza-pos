@@ -27,13 +27,13 @@
     <div class="setup-card card" id="cloud-card">
       <h2 class="card-title"><span class="pixel-icon">☁️</span> ENTRAR</h2>
       <form id="login-form" class="login-form">
-        <div class="form-group"><label>CORREO</label><input type="email" id="login-email" class="pixel-input" autocomplete="username" required/></div>
+        <div class="form-group"><label>USUARIO</label><input type="text" id="login-user" class="pixel-input" autocomplete="username" required placeholder="usuario o tu correo"/></div>
         <div class="form-group"><label>CONTRASEÑA</label><input type="password" id="login-password" class="pixel-input" autocomplete="current-password" required/></div>
         <button type="submit" class="btn-primary" id="btn-login">► ENTRAR</button>
       </form>
-      <p class="setup-hint">¿Negocio nuevo? <a href="#" id="link-show-signup">Crear cuenta</a></p>
+      <p class="setup-hint">¿Negocio nuevo? <a href="#" id="link-show-signup">Crear cuenta</a> (usuario + contraseña, sin correo)</p>
       <form id="signup-form" class="login-form hidden">
-        <div class="form-group"><label>CORREO</label><input type="email" id="signup-email" class="pixel-input" autocomplete="username" required/></div>
+        <div class="form-group"><label>USUARIO</label><input type="text" id="signup-user" class="pixel-input" autocomplete="username" required minlength="3" maxlength="32" placeholder="ej. taqueria_elguero"/></div>
         <div class="form-group"><label>CONTRASEÑA</label><input type="password" id="signup-password" class="pixel-input" autocomplete="new-password" minlength="6" required/></div>
         <button type="submit" class="btn-primary" id="btn-signup">► CREAR CUENTA</button>
         <button type="button" class="btn-secondary" id="btn-signup-cancel">Volver a entrar</button>
@@ -160,13 +160,17 @@
         </div>
         <div id="biz-team-block" class="hidden" style="max-width:420px;margin-top:1.75rem;padding-top:1rem;border-top:1px dashed var(--border)">
           <h2 class="card-title"><span class="pixel-icon">👥</span> EQUIPO</h2>
-          <p class="setup-hint">Invita cajeros por correo. Primero deben <strong>crear cuenta</strong> en la pantalla de entrada; luego pegas su correo aquí. Quedan en el mismo negocio con rol cajero (órdenes sí; menú/costos/inventario/marca no).</p>
+          <p class="setup-hint">Crea un cajero con <strong>usuario + contraseña</strong> (sin correo). Entra al POS con ese usuario. Rol cajero: órdenes sí; menú/costos/inventario/marca no.</p>
           <form id="biz-invite-form" class="login-form">
             <div class="form-group">
-              <label>CORREO DEL CAJERO</label>
-              <input type="email" id="biz-invite-email" class="pixel-input" autocomplete="off" placeholder="cajero@correo.com" required/>
+              <label>USUARIO DEL CAJERO</label>
+              <input type="text" id="biz-invite-user" class="pixel-input" autocomplete="off" placeholder="ej. cajero1" minlength="3" maxlength="32" required/>
             </div>
-            <button type="submit" class="btn-primary" id="biz-invite-btn">► INVITAR CAJERO</button>
+            <div class="form-group">
+              <label>CONTRASEÑA</label>
+              <input type="password" id="biz-invite-password" class="pixel-input" autocomplete="new-password" minlength="6" required/>
+            </div>
+            <button type="submit" class="btn-primary" id="biz-invite-btn">► CREAR CAJERO</button>
           </form>
           <ul id="biz-team-list" class="biz-team-list"></ul>
         </div>

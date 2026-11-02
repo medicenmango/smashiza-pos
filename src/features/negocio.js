@@ -7,7 +7,7 @@ import { state } from '../state.js';
 import {
   updateMyBusinessBranding, uploadBusinessLogo, clearBusinessLogo, createMyBusiness,
   switchActiveBusiness, resolveActiveBusiness, syncStatus, updateMyBusinessTheme,
-  deleteMyBusiness, listBusinessMembers, inviteBusinessCashier, removeBusinessMember,
+  deleteMyBusiness, listBusinessMembers, createBusinessCashier, removeBusinessMember,
   currentUser,
 } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
@@ -116,20 +116,21 @@ async function refreshTeamList(){
     list.innerHTML=members.map(m=>{
       const label=ROLE_LABEL[m.role]||m.role;
       const self=me?.id===m.userId;
+      const name=m.display||m.username||m.email||m.userId;
       const canRemove=m.role!=='owner' || (!self && members.filter(x=>x.role==='owner').length>1);
       const removeBtn=canRemove && !self
-        ? `<button type="button" class="btn-secondary biz-team-remove" data-user-id="${escHtml(m.userId)}" data-email="${escHtml(m.email)}">Quitar</button>`
+        ? `<button type="button" class="btn-secondary biz-team-remove" data-user-id="${escHtml(m.userId)}" data-name="${escHtml(name)}">Quitar</button>`
         : '';
       return `<li class="biz-team-row">
-        <span class="biz-team-email">${escHtml(m.email||m.userId)}${self?' (tú)':''}</span>
+        <span class="biz-team-email">${escHtml(name)}${self?' (tú)':''}</span>
         <span class="biz-team-role">${escHtml(label)}</span>
         ${removeBtn}
       </li>`;
     }).join('');
     list.querySelectorAll('.biz-team-remove').forEach(btn=>{
       btn.addEventListener('click',async()=>{
-        const email=btn.dataset.email||'este usuario';
-        if(!confirm(`¿Quitar a ${email} de este negocio?`)) return;
+        const name=btn.dataset.name||'este usuario';
+        if(!confirm(`¿Quitar a ${name} de este negocio?`)) return;
         try{
           await removeBusinessMember({ userId:btn.dataset.userId });
           toast('✔ Miembro quitado.','success');
@@ -309,16 +310,20 @@ export function initNegocioTab(){
 
   document.getElementById('biz-invite-form')?.addEventListener('submit',async e=>{
     e.preventDefault();
-    if(!isOwner()){ toast('Solo el dueño puede invitar.','error'); return; }
-    const input=document.getElementById('biz-invite-email');
-    const email=(input?.value||'').trim();
-    if(!email){ toast('Escribe el correo del cajero.','error'); return; }
+    if(!isOwner()){ toast('Solo el dueño puede crear cajeros.','error'); return; }
+    const userInput=document.getElementById('biz-invite-user');
+    const passInput=document.getElementById('biz-invite-password');
+    const username=(userInput?.value||'').trim();
+    const password=passInput?.value||'';
+    if(!username){ toast('Escribe el usuario del cajero.','error'); return; }
+    if(!password || password.length<6){ toast('Contraseña: mínimo 6 caracteres.','error'); return; }
     const btn=document.getElementById('biz-invite-btn');
     if(btn) btn.disabled=true;
     try{
-      await inviteBusinessCashier({ email });
-      if(input) input.value='';
-      toast(`✔ ${email} invitado como cajero.`,'success');
+      await createBusinessCashier({ username, password });
+      if(userInput) userInput.value='';
+      if(passInput) passInput.value='';
+      toast(`✔ Cajero “${username}” creado. Ya puede entrar.`,'success');
       await refreshTeamList();
     }catch(err){
       toast('Error: '+err.message,'error');
