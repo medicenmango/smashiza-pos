@@ -104,6 +104,7 @@
     <button class="nav-btn active" data-tab="tab-dashboard"><span class="nav-icon">📊</span><span class="nav-label">DASHBOARD</span></button>
     <button class="nav-btn" data-tab="tab-nueva-orden"><span class="nav-icon">🍔</span><span class="nav-label">NUEVA ORDEN</span></button>
     <button class="nav-btn" data-tab="tab-ordenes"><span class="nav-icon">📋</span><span class="nav-label">ÓRDENES</span></button>
+    <button class="nav-btn" data-tab="tab-caja"><span class="nav-icon">💵</span><span class="nav-label">CAJA</span></button>
     <button class="nav-btn" data-tab="tab-clientes"><span class="nav-icon">👥</span><span class="nav-label">CLIENTES</span></button>
     <button class="nav-btn" data-tab="tab-menu"><span class="nav-icon">🗂️</span><span class="nav-label">MENÚ</span></button>
     <button class="nav-btn" data-tab="tab-inventario"><span class="nav-icon">📦</span><span class="nav-label">INVENTARIO <span id="inv-badge" class="inv-badge hidden">0</span></span></button>
@@ -382,6 +383,54 @@
     </div>
 
   </div><!-- /tab-dashboard -->
+
+  <!-- ── CORTE DE CAJA ── -->
+  <div id="tab-caja" class="tab-content hidden">
+    <p class="caja-cloud-only setup-hint hidden">El corte de caja aplica en modo nube (Supabase), por negocio.</p>
+    <div class="caja-editor">
+      <div class="card" style="max-width:520px">
+        <h2 class="card-title"><span class="pixel-icon">💵</span> CORTE DE CAJA</h2>
+        <p class="setup-hint">Apertura con fondo → ventas del turno (Efectivo / Transferencia / Tarjeta) → cierre con esperado vs contado. <strong>No borra órdenes.</strong> Dueño y cajero pueden usarlo.</p>
+        <ul id="caja-checklist" class="caja-checklist"></ul>
+        <div id="caja-last-closed" class="caja-last-closed setup-hint hidden"></div>
+
+        <div id="caja-closed-panel">
+          <h3 class="card-title" style="margin-top:1rem"><span class="pixel-icon">▶</span> ABRIR TURNO</h3>
+          <div class="form-group">
+            <label>FONDO INICIAL (EFECTIVO)</label>
+            <input type="number" id="caja-opening-cash" class="pixel-input" min="0" step="1" value="0"/>
+          </div>
+          <button type="button" class="btn-primary" id="caja-open-btn">► ABRIR TURNO</button>
+        </div>
+
+        <div id="caja-open-panel" class="hidden">
+          <h3 class="card-title" style="margin-top:1rem"><span class="pixel-icon">●</span> TURNO ABIERTO</h3>
+          <p class="setup-hint">Abierto: <strong id="caja-opened-at">—</strong> · Fondo: <strong id="caja-opening-display">$0</strong></p>
+          <div class="caja-sales-grid">
+            <div><span class="caja-sales-label">Efectivo</span><strong id="caja-sales-efectivo">$0</strong></div>
+            <div><span class="caja-sales-label">Transferencia</span><strong id="caja-sales-transferencia">$0</strong></div>
+            <div><span class="caja-sales-label">Tarjeta</span><strong id="caja-sales-tarjeta">$0</strong></div>
+            <div><span class="caja-sales-label">Órdenes</span><strong id="caja-order-count">0</strong></div>
+          </div>
+          <button type="button" class="btn-secondary" id="caja-refresh-sales" style="margin-top:.6rem">↻ Actualizar ventas</button>
+          <p class="setup-hint" style="margin-top:1rem">Esperado en caja = fondo + ventas efectivo → <strong id="caja-expected">$0</strong></p>
+          <div class="form-group">
+            <label>EFECTIVO CONTADO</label>
+            <input type="number" id="caja-counted-cash" class="pixel-input" min="0" step="1" value="0"/>
+          </div>
+          <p class="setup-hint">Diferencia (contado − esperado): <strong id="caja-diff">$0</strong></p>
+          <div class="form-group">
+            <label>NOTA (opcional)</label>
+            <input type="text" id="caja-notes" class="pixel-input" maxlength="200" placeholder="Ej. faltante por cambio"/>
+          </div>
+          <button type="button" class="btn-primary" id="caja-close-btn">► CERRAR TURNO</button>
+        </div>
+
+        <h3 class="card-title" style="margin-top:1.5rem"><span class="pixel-icon">📜</span> CORTES RECIENTES</h3>
+        <ul id="caja-recent-list" class="caja-recent-list"></ul>
+      </div>
+    </div>
+  </div>
 
   <!-- ── NUEVA ORDEN ── -->
   <div id="tab-nueva-orden" class="tab-content hidden">

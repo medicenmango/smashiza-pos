@@ -1,5 +1,6 @@
 import { runInventorySelfTest } from './domain/inventory.js';
 import { initBATab } from './features/analisis.js';
+import { initCajaTab } from './features/caja.js';
 import { initClientsTab } from './features/clientes.js';
 import { initDashboardFilter } from './features/dashboard.js';
 import { initInventoryTab } from './features/inventario.js';
@@ -27,6 +28,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   initClienteAutocomplete();
   initAjuste();
   initNegocioTab();
+  initCajaTab();
   renderMenuGrid();
   renderMenuEditor();
   initDashboardFilter();

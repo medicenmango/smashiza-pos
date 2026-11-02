@@ -1,5 +1,6 @@
 import { isOwner, isOwnerOnlyTab } from '../auth/roles.js';
 import { renderCostEditor, renderBA } from './analisis.js';
+import { renderCajaTab } from './caja.js';
 import { renderClientsTab } from './clientes.js';
 import { refreshDashboard } from './dashboard.js';
 import { renderInventory } from './inventario.js';
@@ -44,6 +45,7 @@ export function initNav(){
         stampNewOrderWhen();
       }
       if(btn.dataset.tab==='tab-ordenes')   renderOrdersTable();
+      if(btn.dataset.tab==='tab-caja')      renderCajaTab();
       if(btn.dataset.tab==='tab-menu')      renderMenuEditor();
       if(btn.dataset.tab==='tab-clientes')  renderClientsTab();
       if(btn.dataset.tab==='tab-analisis'){ renderCostEditor(); renderBA(); }

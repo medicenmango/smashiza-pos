@@ -367,6 +367,66 @@ export async function removeBusinessMember({ businessId, userId }={}){
   }));
 }
 
+function mapCashShift(r){
+  if(!r) return null;
+  return {
+    id:r.id,
+    businessId:r.business_id,
+    openedAt:r.opened_at,
+    openedBy:r.opened_by,
+    openingCash:Number(r.opening_cash)||0,
+    closedAt:r.closed_at||null,
+    closedBy:r.closed_by||null,
+    salesEfectivo:r.sales_efectivo==null?null:Number(r.sales_efectivo)||0,
+    salesTransferencia:r.sales_transferencia==null?null:Number(r.sales_transferencia)||0,
+    salesTarjeta:r.sales_tarjeta==null?null:Number(r.sales_tarjeta)||0,
+    expectedCash:r.expected_cash==null?null:Number(r.expected_cash)||0,
+    countedCash:r.counted_cash==null?null:Number(r.counted_cash)||0,
+    difference:r.difference==null?null:Number(r.difference)||0,
+    notes:r.notes||'',
+  };
+}
+
+export async function getOpenCashShift(businessId){
+  const bid=businessId||requireBusinessId();
+  const rows=check(await db().rpc('get_open_cash_shift', { p_business_id:bid }));
+  const row=Array.isArray(rows)?rows[0]:rows;
+  return mapCashShift(row||null);
+}
+
+export async function openCashShift({ businessId, openingCash }={}){
+  const bid=businessId||requireBusinessId();
+  const row=check(await db().rpc('open_cash_shift', {
+    p_business_id:bid,
+    p_opening_cash:Number(openingCash)||0,
+  }));
+  return mapCashShift(row);
+}
+
+export async function closeCashShift({
+  businessId, countedCash, salesEfectivo, salesTransferencia, salesTarjeta, notes,
+}={}){
+  const bid=businessId||requireBusinessId();
+  const row=check(await db().rpc('close_cash_shift', {
+    p_business_id:bid,
+    p_counted_cash:Number(countedCash)||0,
+    p_sales_efectivo:Number(salesEfectivo)||0,
+    p_sales_transferencia:Number(salesTransferencia)||0,
+    p_sales_tarjeta:Number(salesTarjeta)||0,
+    p_notes:notes||'',
+  }));
+  return mapCashShift(row);
+}
+
+export async function listCashShifts({ businessId, limit=10 }={}){
+  const bid=businessId||requireBusinessId();
+  const rows=check(await db().rpc('list_cash_shifts', {
+    p_business_id:bid,
+    p_limit:limit,
+  }))||[];
+  return rows.map(mapCashShift);
+}
+
 // ── Row mapping (state shape ↔ DB) ────────────────────────────
 function orderToDb(o){
   return withBiz({
