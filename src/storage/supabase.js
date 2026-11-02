@@ -273,12 +273,29 @@ export async function clearBusinessLogo(){
   });
 }
 
+/** Intenta quitar logos del bucket (Storage API; no tocar storage.objects en SQL). */
+async function removeBusinessLogos(bid){
+  const paths=new Set();
+  if(state.logoPath && String(state.logoPath).startsWith(bid)) paths.add(state.logoPath);
+  try{
+    const { data }=await db().storage.from('business-logos').list(bid, { limit:100 });
+    (data||[]).forEach(f=>{ if(f?.name) paths.add(`${bid}/${f.name}`); });
+  }catch(_){}
+  if(!paths.size) return;
+  try{
+    await db().storage.from('business-logos').remove([...paths]);
+  }catch(e){
+    console.warn('[Smashiza] no se pudieron borrar logos del storage', e);
+  }
+}
+
 /** Borra el negocio activo (RPC). Tras éxito, deja preferencia en Smashiza u otro restante. */
 export async function deleteMyBusiness({ businessId, confirmName }={}){
   const bid=businessId||requireBusinessId();
   if(bid===SMASHIZA_BUSINESS_ID){
     throw new Error('No se puede borrar La Smashiza.');
   }
+  await removeBusinessLogos(bid);
   check(await db().rpc('delete_my_business', {
     p_business_id:bid,
     p_confirm_name:confirmName,
