@@ -1,6 +1,7 @@
 -- La Smashiza POS — esquema inicial.
 -- Pegar completo en Supabase → SQL Editor → Run. Es idempotente: se puede volver a correr.
 -- Acceso: solo usuarios de Supabase Auth (rol authenticated). El rol anon no ve nada.
+-- Multi-tenant / RLS por membresía: ver 003_multi_tenant.sql (después de 002_save_order.sql).
 
 -- ── Menú y catálogo ───────────────────────────────────────────
 create table if not exists public.categories (

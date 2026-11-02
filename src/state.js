@@ -13,4 +13,9 @@ export const state = {
   recipeDrafts: {},
   demoMode: false,
   cloud: false,
+  // Multi-tenant: negocio activo (Supabase). Excel/demo no lo usan.
+  businessId: null,
+  businessName: '',
+  businessRole: '',
+  businesses: [],
 };
