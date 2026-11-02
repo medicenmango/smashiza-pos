@@ -5,6 +5,11 @@ import { today } from '../utils/format.js';
 
 export let catalogCache=null;
 
+function catalogStorageKey(){
+  if(state.cloud && state.businessId) return `smashiza_catalog_v1_${state.businessId}`;
+  return 'smashiza_catalog_v1';
+}
+
 // ── COST PERSISTENCE ──────────────────────────────────────
 export function loadCosts(){
   return loadCatalog().costs;
@@ -24,14 +29,16 @@ export function saveCosts(partial, removeEmptyFrom){
 export function loadCatalog(){
   if(catalogCache) return catalogCache;
   try{
-    const raw=JSON.parse(localStorage.getItem('smashiza_catalog_v1')||'null');
+    const raw=JSON.parse(localStorage.getItem(catalogStorageKey())||'null');
     if(raw && typeof raw==='object'){
       catalogCache={ costs: raw.costs||{}, items: raw.items||{} };
       return catalogCache;
     }
   }catch(_){}
   let costs={};
-  try{ costs=JSON.parse(localStorage.getItem('smashiza_costs')||'{}'); }catch(_){}
+  if(!(state.cloud && state.businessId)){
+    try{ costs=JSON.parse(localStorage.getItem('smashiza_costs')||'{}'); }catch(_){}
+  }
   catalogCache={ costs, items:{} };
   return catalogCache;
 }
@@ -39,8 +46,14 @@ export function loadCatalog(){
 export function saveCatalog(cat){
   catalogCache=cat;
   if(state.demoMode) return;
-  try{ localStorage.setItem('smashiza_catalog_v1', JSON.stringify(cat)); }
+  try{ localStorage.setItem(catalogStorageKey(), JSON.stringify(cat)); }
   catch(_){}
+}
+
+/** Vacía costos/catálogo local del negocio activo (onboarding vacío). */
+export function clearCatalogLocal(){
+  catalogCache={ costs:{}, items:{} };
+  saveCatalog(catalogCache);
 }
 
 export function soldProductNames(){

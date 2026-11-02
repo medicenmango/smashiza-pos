@@ -1,6 +1,8 @@
+import { SMASHIZA_BUSINESS_ID } from '../constants.js';
 import { state } from '../state.js';
 
-export const MENU_DEFAULT = [
+/** Menú histórico de La Smashiza (solo tenant #1 / restore Smashiza). */
+export const MENU_SMASHIZA_DEFAULT = [
   { id:'s1', cat:'smash',    emoji:'🍔', name:'La Master',        price:159 },
   { id:'s2', cat:'smash',    emoji:'🍔', name:'El Santos',         price:159 },
   { id:'s3', cat:'smash',    emoji:'🍔', name:'La de Cajon',       price:159 },
@@ -25,28 +27,87 @@ export const MENU_DEFAULT = [
   { id:'b1', cat:'bebidas',  emoji:'🧃', name:'Boing',             price:25  },
 ];
 
-export const CAT_LABELS = {
+/** @deprecated usar MENU_SMASHIZA_DEFAULT */
+export const MENU_DEFAULT = MENU_SMASHIZA_DEFAULT;
+
+export const CAT_LABELS_SMASHIZA = {
   smash:'SMASH BURGERS', especial:'PAPAS',
   extras:'EXTRAS & COMPLEMENTOS', bebidas:'BEBIDAS',
 };
 
-export function loadMenuFromStorage() {
-  try {
-    const raw = localStorage.getItem('smashiza_menu_v2');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed.cats) Object.keys(parsed.cats).forEach(k => { CAT_LABELS[k] = parsed.cats[k]; });
-      return parsed.items || JSON.parse(JSON.stringify(MENU_DEFAULT));
-    }
-  } catch(_) {}
-  return JSON.parse(JSON.stringify(MENU_DEFAULT));
+/** Plantilla genérica: categorías vacías, sin productos Smashiza. */
+export const CAT_LABELS_GENERIC = {
+  platillos:'PLATILLOS',
+  bebidas:'BEBIDAS',
+  extras:'EXTRAS',
+};
+
+export const CAT_LABELS = { ...CAT_LABELS_SMASHIZA };
+
+export function isSmashizaTenant(){
+  return !state.cloud || !state.businessId || state.businessId===SMASHIZA_BUSINESS_ID;
 }
 
-export function saveMenuToStorage() {
+function menuStorageKey(){
+  if(state.cloud && state.businessId) return `smashiza_menu_v2_${state.businessId}`;
+  return 'smashiza_menu_v2';
+}
+
+function menuOrderStorageKey(){
+  if(state.cloud && state.businessId) return `smashiza_menu_order_${state.businessId}`;
+  return 'smashiza_menu_order';
+}
+
+function replaceCatLabels(next){
+  Object.keys(CAT_LABELS).forEach(k=>delete CAT_LABELS[k]);
+  Object.assign(CAT_LABELS, next);
+}
+
+/** Categorías Platillos / Bebidas / Extras, sin productos. */
+export function applyGenericEmptyCatalog(){
+  MENU.length=0;
+  replaceCatLabels({ ...CAT_LABELS_GENERIC });
+  state.menuOrder={};
+  saveMenuOrder();
+  saveMenuToStorage();
+}
+
+/** Menú completo La Smashiza (solo tenant #1 / Excel demo). */
+export function applySmashizaDefaultCatalog(){
+  MENU.length=0;
+  MENU_SMASHIZA_DEFAULT.forEach(i=>MENU.push(JSON.parse(JSON.stringify(i))));
+  replaceCatLabels({ ...CAT_LABELS_SMASHIZA });
+  state.menuOrder={};
+  saveMenuOrder();
+  saveMenuToStorage();
+}
+
+/** Starter al dejar un negocio sin menú en nube. */
+export function applyStarterCatalogForActiveBusiness(){
+  if(isSmashizaTenant()) applySmashizaDefaultCatalog();
+  else applyGenericEmptyCatalog();
+}
+
+export function loadMenuFromStorage(){
+  try{
+    const raw=localStorage.getItem(menuStorageKey());
+    if(raw){
+      const parsed=JSON.parse(raw);
+      if(parsed.cats){
+        replaceCatLabels(parsed.cats);
+      }
+      return parsed.items || JSON.parse(JSON.stringify(MENU_SMASHIZA_DEFAULT));
+    }
+  }catch(_){}
+  // Sin nube aún: defaults Smashiza para Excel/demo; nube vacía se resuelve al cargar.
+  return JSON.parse(JSON.stringify(MENU_SMASHIZA_DEFAULT));
+}
+
+export function saveMenuToStorage(){
   if(state.demoMode) return;
-  try {
-    localStorage.setItem('smashiza_menu_v2', JSON.stringify({ items: MENU, cats: { ...CAT_LABELS } }));
-  } catch(_) {}
+  try{
+    localStorage.setItem(menuStorageKey(), JSON.stringify({ items:MENU, cats:{ ...CAT_LABELS } }));
+  }catch(_){}
 }
 
 export let MENU = loadMenuFromStorage();
@@ -66,7 +127,17 @@ export function orderedMenuItems(cat){
 
 export function saveMenuOrder(){
   if(state.demoMode) return;
-  localStorage.setItem('smashiza_menu_order',JSON.stringify(state.menuOrder));
+  try{
+    localStorage.setItem(menuOrderStorageKey(), JSON.stringify(state.menuOrder));
+  }catch(_){}
+}
+
+export function loadMenuOrderForActiveBusiness(){
+  try{
+    state.menuOrder=JSON.parse(localStorage.getItem(menuOrderStorageKey())||'{}');
+  }catch(_){
+    state.menuOrder={};
+  }
 }
 
 export function getCatLabel(cat){ return CAT_LABELS[cat]||cat.toUpperCase(); }

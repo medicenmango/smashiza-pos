@@ -1,5 +1,8 @@
-import { recordMenuPrice, markCatalogOffMenu } from '../domain/catalog.js';
-import { MENU_DEFAULT, CAT_LABELS, MENU, getCatLabel } from '../domain/menu.js';
+import { recordMenuPrice, markCatalogOffMenu, clearCatalogLocal } from '../domain/catalog.js';
+import {
+  CAT_LABELS, MENU, getCatLabel, isSmashizaTenant,
+  applySmashizaDefaultCatalog, applyGenericEmptyCatalog,
+} from '../domain/menu.js';
 import { renderMenuGrid, renderCategoryBtns } from './nueva-orden.js';
 import { state } from '../state.js';
 import { saveMenuCatalog } from '../storage/index.js';
@@ -11,12 +14,15 @@ export function renderMenuEditor(){
   const catsFromMenu=[...new Set(MENU.map(i=>i.cat))];
   const catsFromLabels=Object.keys(CAT_LABELS);
   const cats=[...new Set([...catsFromLabels,...catsFromMenu])];
+  const resetLabel=isSmashizaTenant()
+    ? '↩ RESTAURAR DEFAULTS'
+    : '↩ PLANTILLA VACÍA';
 
   el.innerHTML=`
     <div class="menu-editor-top">
       <button class="btn-primary btn-inline" id="btn-add-product" style="width:auto">➕ NUEVO PRODUCTO</button>
       <button class="btn-primary btn-inline" id="btn-add-category" style="width:auto;background:var(--blue-mid);box-shadow:0 4px 0 var(--blue)">🗂️ NUEVA CATEGORÍA</button>
-      <button class="btn-secondary btn-inline" id="btn-reset-menu">↩ RESTAURAR DEFAULTS</button>
+      <button class="btn-secondary btn-inline" id="btn-reset-menu">${resetLabel}</button>
     </div>
     ${cats.map(cat=>{
       // Get items in custom order
@@ -122,13 +128,17 @@ export function renderMenuEditor(){
   document.getElementById('btn-add-product').addEventListener('click',()=>openAddProductModal());
   document.getElementById('btn-add-category').addEventListener('click',()=>openAddCategoryModal());
   document.getElementById('btn-reset-menu').addEventListener('click',()=>{
-    if(!confirm('¿Restaurar el menú original? Esto reemplaza el menú del Excel. Los costos se conservan.')) return;
-    MENU.length=0; MENU_DEFAULT.forEach(i=>MENU.push(JSON.parse(JSON.stringify(i))));
-    Object.keys(CAT_LABELS).forEach(k=>delete CAT_LABELS[k]);
-    Object.assign(CAT_LABELS,{smash:'SMASH BURGERS',especial:'PAPAS',extras:'EXTRAS & COMPLEMENTOS',bebidas:'BEBIDAS'});
-    state.menuOrder={};
+    if(isSmashizaTenant()){
+      if(!confirm('¿Restaurar el menú original de La Smashiza? Se reemplaza el menú actual.')) return;
+      applySmashizaDefaultCatalog();
+      toast('✔ Menú Smashiza restaurado','success');
+    } else {
+      if(!confirm('¿Volver a la plantilla vacía (Platillos / Bebidas / Extras) sin productos? No se cargan hamburguesas de Smashiza.')) return;
+      applyGenericEmptyCatalog();
+      clearCatalogLocal();
+      toast('✔ Plantilla vacía aplicada','success');
+    }
     saveMenuCatalog(true); renderMenuEditor(); renderMenuGrid();
-    toast('✔ Menú restaurado','success');
   });
 }
 

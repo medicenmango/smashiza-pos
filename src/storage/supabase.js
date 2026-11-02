@@ -4,6 +4,8 @@ import { normOrderNum } from '../domain/inventory.js';
 import { orderItems, setOrderItems } from '../domain/orders.js';
 import { state } from '../state.js';
 import { emitDataLoaded, emitSyncChange } from './events.js';
+import { clearCatalogLocal } from '../domain/catalog.js';
+import { applyGenericEmptyCatalog, isSmashizaTenant } from '../domain/menu.js';
 import { menuCatalogRows, applyMenuFromRows, applyCatalogFromRows } from './rows.js';
 import { toast } from '../ui/toast.js';
 import { toYmd, toHms, fmtDate, fmtTime } from '../utils/format.js';
@@ -720,11 +722,14 @@ export async function loadFromSupabase(){
   }));
 
   state._hydrating=true;
-  if(menu.length){
+  if(menu.length || cats.length){
     applyMenuFromRows(
       menu.map(r=>({ Id:r.id, Categoria:r.category, Emoji:r.emoji, Nombre:r.name, Precio:Number(r.price)||0, Orden:r.sort })),
       cats.map(r=>({ Id:r.id, Etiqueta:r.label })),
     );
+  } else if(!isSmashizaTenant()){
+    // Negocio nuevo sin filas: no heredar menú Smashiza del localStorage del navegador
+    applyGenericEmptyCatalog();
   }
   if(catalog.length||costs.length||prices.length){
     applyCatalogFromRows(
@@ -732,6 +737,8 @@ export async function loadFromSupabase(){
       catalog.map(r=>({ Producto:r.name, Emoji:r.emoji, Categoria:r.category, EnMenu:r.on_menu?'si':'no' })),
       prices.map(r=>({ Producto:r.name, Desde:r.since, Precio:Number(r.price)||0 })),
     );
+  } else if(!isSmashizaTenant()){
+    clearCatalogLocal();
   }
   state._hydrating=false;
 
