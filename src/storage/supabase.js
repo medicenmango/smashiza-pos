@@ -85,6 +85,9 @@ function mapBusinessRow(r){
     phone:r.phone||'',
     ticketFooter:r.ticket_footer||'',
     logoPath:r.logo_path||'',
+    colorPrimary:r.color_primary||'#e63232',
+    colorSecondary:r.color_secondary||'#1a3bcc',
+    colorBg:r.color_bg||'#0d0820',
   };
 }
 
@@ -97,6 +100,9 @@ function applyBusiness(b){
   state.phone=b.phone||'';
   state.ticketFooter=b.ticketFooter||'';
   state.logoPath=b.logoPath||'';
+  state.colorPrimary=b.colorPrimary||'#e63232';
+  state.colorSecondary=b.colorSecondary||'#1a3bcc';
+  state.colorBg=b.colorBg||'#0d0820';
   storeBusinessId(b.id);
 }
 
@@ -110,6 +116,9 @@ function clearBusinessState(){
   state.phone='';
   state.ticketFooter='';
   state.logoPath='';
+  state.colorPrimary='';
+  state.colorSecondary='';
+  state.colorBg='';
   storeBusinessId('');
 }
 
@@ -136,6 +145,7 @@ export function getActiveBusiness(){
       id:state.businessId, name:state.businessName, role:state.businessRole,
       ticketName:state.ticketName, ticketTagline:state.ticketTagline,
       phone:state.phone, ticketFooter:state.ticketFooter, logoPath:state.logoPath,
+      colorPrimary:state.colorPrimary, colorSecondary:state.colorSecondary, colorBg:state.colorBg,
     }
     : null;
 }
@@ -204,6 +214,26 @@ export async function updateMyBusinessBranding({
       phone:state.phone,
       ticketFooter:state.ticketFooter,
       logoPath:state.logoPath,
+    };
+  }
+}
+
+export async function updateMyBusinessTheme({ colorPrimary, colorSecondary, colorBg }={}){
+  const bid=requireBusinessId();
+  check(await db().rpc('update_my_business_theme', {
+    p_business_id:bid,
+    p_color_primary:colorPrimary,
+    p_color_secondary:colorSecondary,
+    p_color_bg:colorBg,
+  }));
+  state.colorPrimary=colorPrimary;
+  state.colorSecondary=colorSecondary;
+  state.colorBg=colorBg;
+  const i=state.businesses.findIndex(b=>b.id===bid);
+  if(i>=0){
+    state.businesses[i]={
+      ...state.businesses[i],
+      colorPrimary, colorSecondary, colorBg,
     };
   }
 }
@@ -581,6 +611,7 @@ async function cacheState(){
       businessId:state.businessId, businessName:state.businessName, businessRole:state.businessRole,
       ticketName:state.ticketName, ticketTagline:state.ticketTagline, phone:state.phone,
       ticketFooter:state.ticketFooter, logoPath:state.logoPath,
+      colorPrimary:state.colorPrimary, colorSecondary:state.colorSecondary, colorBg:state.colorBg,
     }, 'state'));
   }catch(e){ console.warn('[Smashiza] no se pudo guardar la copia local', e); }
 }
@@ -613,6 +644,9 @@ export async function loadFromCache(){
     state.phone=c.phone||'';
     state.ticketFooter=c.ticketFooter||'';
     state.logoPath=c.logoPath||'';
+    state.colorPrimary=c.colorPrimary||'#e63232';
+    state.colorSecondary=c.colorSecondary||'#1a3bcc';
+    state.colorBg=c.colorBg||'#0d0820';
   }
   saved=Object.fromEntries(Object.entries(c.saved||{}).map(([t,entries])=>[t,new Map(entries)]));
   offline=true;
