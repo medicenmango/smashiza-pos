@@ -253,15 +253,51 @@ end $$;
 -- ═══════════════════════════════════════════════════════════════
 -- 6. Vistas Power BI (security_invoker → RLS aplica)
 -- ═══════════════════════════════════════════════════════════════
+-- IMPORTANTE: no usar CREATE OR REPLACE VIEW con o.* aquí.
+-- Tras añadir client_id / business_id a orders, REPLACE intenta
+-- renombrar la columna fecha_turno → client_id (error 42P16).
+-- Hay que DROP y volver a crear (order_items depende de v_orders).
 
-create or replace view public.v_orders with (security_invoker = true) as
-select o.*,
-       case when o.hora < time '02:00' then o.fecha - 1 else o.fecha end as fecha_turno
+drop view if exists public.v_order_items;
+drop view if exists public.v_orders;
+
+create view public.v_orders with (security_invoker = true) as
+select
+  o.business_id,
+  o.num,
+  o.fecha,
+  o.hora,
+  o.cliente,
+  o.direccion,
+  o.comentarios,
+  o.metodo_pago,
+  o.ajuste,
+  o.total,
+  o.recibido,
+  o.cambio,
+  o.estado,
+  o.created_at,
+  o.updated_at,
+  o.deleted_at,
+  o.client_id,
+  case when o.hora < time '02:00' then o.fecha - 1 else o.fecha end as fecha_turno
 from public.orders o
 where o.deleted_at is null;
 
-create or replace view public.v_order_items with (security_invoker = true) as
-select i.*, o.fecha, o.fecha_turno, o.estado, o.metodo_pago, o.business_id as order_business_id
+create view public.v_order_items with (security_invoker = true) as
+select
+  i.business_id,
+  i.order_num,
+  i.line,
+  i.product_id,
+  i.product,
+  i.qty,
+  i.unit_price,
+  i.subtotal,
+  o.fecha,
+  o.fecha_turno,
+  o.estado,
+  o.metodo_pago
 from public.order_items i
 join public.v_orders o
   on o.num = i.order_num
