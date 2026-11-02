@@ -95,6 +95,11 @@ html,body{height:100%;background:var(--bg-dark);color:var(--beige);font-family:v
 .biz-logo-preview{height:56px;width:auto;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:2px;background:rgba(255,255,255,.04);padding:4px;}
 #biz-logo-file{font-size:12px;color:var(--beige-dark);max-width:100%;}
 #biz-switcher{cursor:pointer;}
+.biz-preset-row{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.75rem;}
+.biz-preset-btn{width:auto;margin:0;font-size:6px;padding:.45rem .55rem;}
+.biz-color-row{display:flex;flex-wrap:wrap;gap:.85rem;}
+.biz-color-field{display:flex;flex-direction:column;gap:.35rem;font-family:var(--pixel);font-size:6px;color:var(--beige-dark);letter-spacing:.4px;}
+.biz-color-field input[type=color]{width:56px;height:36px;padding:0;border:2px solid var(--border);background:var(--bg-card);cursor:pointer;}
 .file-label{font-family:var(--pixel);font-size:7px;color:var(--blue-light);white-space:nowrap;}
 .file-name{font-family:var(--mono);font-size:11px;color:var(--green);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}
 .file-write-mode{font-family:var(--pixel);font-size:6px;letter-spacing:.5px;white-space:nowrap;}

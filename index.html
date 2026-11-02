@@ -136,6 +136,27 @@
           </div>
           <button type="submit" class="btn-primary" id="biz-save-brand">► GUARDAR MARCA</button>
         </form>
+        <div id="biz-theme-block" style="max-width:420px;margin-top:1.5rem">
+          <h2 class="card-title"><span class="pixel-icon">🌈</span> COLORES</h2>
+          <p class="setup-hint">Se guardan en este negocio. Al cambiar de negocio cambian los colores.</p>
+          <div class="biz-preset-row" id="biz-theme-presets">
+            <button type="button" class="btn-secondary biz-preset-btn" data-preset="retro">Retro Smashiza</button>
+            <button type="button" class="btn-secondary biz-preset-btn" data-preset="pastel">Rosa / azul pastel</button>
+            <button type="button" class="btn-secondary biz-preset-btn" data-preset="neutral">Neutro</button>
+          </div>
+          <div class="biz-color-row">
+            <label class="biz-color-field">Primario
+              <input type="color" id="biz-color-primary" value="#e63232"/>
+            </label>
+            <label class="biz-color-field">Secundario
+              <input type="color" id="biz-color-secondary" value="#1a3bcc"/>
+            </label>
+            <label class="biz-color-field">Fondo
+              <input type="color" id="biz-color-bg" value="#0d0820"/>
+            </label>
+          </div>
+          <button type="button" class="btn-primary" id="biz-save-theme" style="margin-top:.75rem">► GUARDAR COLORES</button>
+        </div>
         <div id="biz-create-extra" class="hidden" style="margin-top:1.25rem">
           <button type="button" class="btn-secondary" id="biz-create-extra-btn">＋ Crear otro negocio</button>
         </div>

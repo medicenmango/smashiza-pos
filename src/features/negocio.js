@@ -1,14 +1,40 @@
-import { applyChromeBranding, activeBranding } from '../domain/branding.js';
+import {
+  applyChromeBranding, activeBranding, applyThemeColors, THEME_PRESETS, normalizeHex,
+} from '../domain/branding.js';
 import { state } from '../state.js';
 import {
   updateMyBusinessBranding, uploadBusinessLogo, clearBusinessLogo, createMyBusiness,
-  switchActiveBusiness, resolveActiveBusiness, syncStatus,
+  switchActiveBusiness, resolveActiveBusiness, syncStatus, updateMyBusinessTheme,
 } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
 import { escHtml } from '../utils/format.js';
 
 function isOwner(){
   return state.cloud && state.businessRole==='owner';
+}
+
+function readThemeFromPickers(){
+  return {
+    primary:normalizeHex(document.getElementById('biz-color-primary')?.value, '#e63232'),
+    secondary:normalizeHex(document.getElementById('biz-color-secondary')?.value, '#1a3bcc'),
+    bg:normalizeHex(document.getElementById('biz-color-bg')?.value, '#0d0820'),
+  };
+}
+
+function fillThemePickers(theme){
+  const t=theme||activeBranding();
+  const p=document.getElementById('biz-color-primary');
+  const s=document.getElementById('biz-color-secondary');
+  const bg=document.getElementById('biz-color-bg');
+  if(p) p.value=normalizeHex(t.primary||state.colorPrimary, '#e63232');
+  if(s) s.value=normalizeHex(t.secondary||state.colorSecondary, '#1a3bcc');
+  if(bg) bg.value=normalizeHex(t.bg||state.colorBg, '#0d0820');
+  const block=document.getElementById('biz-theme-block');
+  if(block){
+    block.querySelectorAll('input,button').forEach(el=>{
+      el.disabled=!isOwner();
+    });
+  }
 }
 
 function fillSwitcher(){
@@ -56,6 +82,7 @@ function fillForm(){
   }
   const createWrap=document.getElementById('biz-create-extra');
   if(createWrap) createWrap.classList.toggle('hidden', !isOwner());
+  fillThemePickers(b);
   fillSwitcher();
 }
 
@@ -76,13 +103,14 @@ export function renderNegocioTab(){
   }
   fillForm();
   applyChromeBranding();
-  // Refrescar lista por si creó otro negocio en otra pestaña
   resolveActiveBusiness().then(()=>{
     if(meta){
       meta.innerHTML=`Negocio activo: <strong>${escHtml(state.businessName||'—')}</strong>
         · rol: <strong>${escHtml(state.businessRole||'—')}</strong>`;
     }
     fillSwitcher();
+    fillThemePickers();
+    applyChromeBranding();
   }).catch(()=>{});
 }
 
@@ -165,6 +193,45 @@ export function initNegocioTab(){
     }
   });
 
+  document.querySelectorAll('.biz-preset-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(!isOwner()){ toast('Solo el dueño puede editar colores.','error'); return; }
+      const preset=THEME_PRESETS[btn.dataset.preset];
+      if(!preset) return;
+      fillThemePickers(preset);
+      applyThemeColors(preset);
+      toast(`Preset “${preset.label}” aplicado (guarda para persistir).`,'info');
+    });
+  });
+
+  ['biz-color-primary','biz-color-secondary','biz-color-bg'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('input',()=>{
+      if(!isOwner()) return;
+      applyThemeColors(readThemeFromPickers());
+    });
+  });
+
+  document.getElementById('biz-save-theme')?.addEventListener('click',async()=>{
+    if(!isOwner()){ toast('Solo el dueño puede editar colores.','error'); return; }
+    const btn=document.getElementById('biz-save-theme');
+    const t=readThemeFromPickers();
+    if(btn) btn.disabled=true;
+    try{
+      await updateMyBusinessTheme({
+        colorPrimary:t.primary,
+        colorSecondary:t.secondary,
+        colorBg:t.bg,
+      });
+      applyChromeBranding();
+      fillThemePickers();
+      toast('✔ Colores guardados en este negocio.','success');
+    }catch(err){
+      toast('Error: '+err.message,'error');
+    }finally{
+      if(btn) btn.disabled=false;
+    }
+  });
+
   document.getElementById('biz-create-extra-btn')?.addEventListener('click',async()=>{
     if(!isOwner()) return;
     const name=prompt('Nombre del nuevo negocio:');
@@ -180,4 +247,3 @@ export function initNegocioTab(){
     }
   });
 }
-

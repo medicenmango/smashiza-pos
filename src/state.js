@@ -24,4 +24,7 @@ export const state = {
   phone: '',
   ticketFooter: '',
   logoPath: '',
+  colorPrimary: '',
+  colorSecondary: '',
+  colorBg: '',
 };
