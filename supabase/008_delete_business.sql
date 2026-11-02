@@ -9,7 +9,7 @@ create or replace function public.delete_my_business(
 returns void
 language plpgsql
 security definer
-set search_path = ''
+set search_path = public
 as $$
 declare
   smashiza uuid := '00000000-0000-4000-8000-000000000001';
@@ -47,7 +47,7 @@ begin
     raise exception 'delete_my_business: el nombre no coincide (escribe exactamente el nombre del negocio)';
   end if;
 
-  -- Datos del tenant (order_items cae con orders por FK compuesta CASCADE)
+  -- Datos del tenant (solo public.*; logos vía Storage API en la app — ver 009)
   delete from public.order_items where business_id = p_business_id;
   delete from public.orders where business_id = p_business_id;
   delete from public.inventory_movements where business_id = p_business_id;
@@ -59,12 +59,6 @@ begin
   delete from public.menu_items where business_id = p_business_id;
   delete from public.categories where business_id = p_business_id;
 
-  -- Logos en Storage
-  delete from storage.objects
-  where bucket_id = 'business-logos'
-    and name like p_business_id::text || '/%';
-
-  -- Members caen por ON DELETE CASCADE
   delete from public.businesses where id = p_business_id;
 end $$;
 
