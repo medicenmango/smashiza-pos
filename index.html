@@ -111,8 +111,14 @@
     <p class="biz-cloud-only setup-hint hidden">La marca del ticket solo aplica en modo nube (Supabase).</p>
     <div class="biz-editor">
       <div class="card">
-        <h2 class="card-title"><span class="pixel-icon">🏪</span> MARCA DEL TICKET</h2>
+        <h2 class="card-title"><span class="pixel-icon">🏪</span> NEGOCIO ACTIVO</h2>
         <p id="biz-active-meta" class="setup-hint"></p>
+        <div class="form-group" id="biz-switcher-wrap" style="max-width:420px">
+          <label for="biz-switcher">CAMBIAR DE NEGOCIO</label>
+          <select id="biz-switcher" class="pixel-input"></select>
+          <p class="setup-hint">Al cambiar se recarga la app con órdenes, menú e inventario de ese negocio.</p>
+        </div>
+        <h2 class="card-title" style="margin-top:1.25rem"><span class="pixel-icon">🎨</span> MARCA DEL TICKET</h2>
         <p id="biz-readonly-hint" class="setup-hint hidden">Solo el dueño puede editar nombre, teléfono, pie y logo.</p>
         <form id="biz-branding-form" class="login-form" style="max-width:420px">
           <div class="form-group"><label>NOMBRE COMERCIAL</label><input type="text" id="biz-ticket-name" class="pixel-input" required maxlength="80"/></div>

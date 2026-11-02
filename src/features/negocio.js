@@ -2,12 +2,27 @@ import { applyChromeBranding, activeBranding } from '../domain/branding.js';
 import { state } from '../state.js';
 import {
   updateMyBusinessBranding, uploadBusinessLogo, clearBusinessLogo, createMyBusiness,
+  switchActiveBusiness, resolveActiveBusiness, syncStatus,
 } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
 import { escHtml } from '../utils/format.js';
 
 function isOwner(){
   return state.cloud && state.businessRole==='owner';
+}
+
+function fillSwitcher(){
+  const sel=document.getElementById('biz-switcher');
+  const wrap=document.getElementById('biz-switcher-wrap');
+  if(!sel||!wrap) return;
+  const list=state.businesses||[];
+  wrap.classList.toggle('hidden', list.length<1);
+  sel.innerHTML=list.map(b=>{
+    const label=escHtml(b.ticketName||b.name||b.id);
+    const role=b.role?` (${escHtml(b.role)})`:'';
+    const active=b.id===state.businessId?' — activo':'';
+    return `<option value="${escHtml(b.id)}" ${b.id===state.businessId?'selected':''}>${label}${role}${active}</option>`;
+  }).join('');
 }
 
 function fillForm(){
@@ -41,6 +56,7 @@ function fillForm(){
   }
   const createWrap=document.getElementById('biz-create-extra');
   if(createWrap) createWrap.classList.toggle('hidden', !isOwner());
+  fillSwitcher();
 }
 
 export function renderNegocioTab(){
@@ -60,11 +76,43 @@ export function renderNegocioTab(){
   }
   fillForm();
   applyChromeBranding();
+  // Refrescar lista por si creó otro negocio en otra pestaña
+  resolveActiveBusiness().then(()=>{
+    if(meta){
+      meta.innerHTML=`Negocio activo: <strong>${escHtml(state.businessName||'—')}</strong>
+        · rol: <strong>${escHtml(state.businessRole||'—')}</strong>`;
+    }
+    fillSwitcher();
+  }).catch(()=>{});
 }
 
 export function initNegocioTab(){
   const form=document.getElementById('biz-branding-form');
   if(!form) return;
+
+  document.getElementById('biz-switcher')?.addEventListener('change',e=>{
+    const id=e.target.value;
+    if(!id||id===state.businessId) return;
+    const { pending }=syncStatus();
+    if(pending){
+      const ok=confirm(`Hay ${pending} cambio(s) sin subir. Si cambias de negocio ahora pueden perderse en este dispositivo.\n\n¿Cambiar de todos modos?`);
+      if(!ok){
+        e.target.value=state.businessId||'';
+        return;
+      }
+    }
+    try{
+      if(!switchActiveBusiness(id)){
+        e.target.value=state.businessId||'';
+        return;
+      }
+      toast('Cambiando de negocio…','info');
+      location.reload();
+    }catch(err){
+      e.target.value=state.businessId||'';
+      toast('Error: '+err.message,'error');
+    }
+  });
 
   form.addEventListener('submit',async e=>{
     e.preventDefault();

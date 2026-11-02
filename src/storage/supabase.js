@@ -140,6 +140,16 @@ export function getActiveBusiness(){
     : null;
 }
 
+/** Cambia el negocio activo (localStorage + state) y recarga para traer sus datos. */
+export function switchActiveBusiness(businessId){
+  const id=String(businessId||'');
+  const row=state.businesses.find(b=>b.id===id);
+  if(!row) throw new Error('Ese negocio no está en tu lista.');
+  if(row.id===state.businessId) return false;
+  applyBusiness(row);
+  return true;
+}
+
 export async function signUp(email, password){
   const { data, error }=await db().auth.signUp({ email, password });
   if(error) throw new Error(error.message);
