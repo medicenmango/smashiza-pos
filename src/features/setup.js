@@ -8,7 +8,7 @@ import { pickFile, handleFromDrop, loadExcel, loadDemoWorkbook, createNewExcel, 
 import { onSyncChange } from '../storage/events.js';
 import { onDataLoaded, useBackend } from '../storage/index.js';
 import { currentUser, signIn, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog,
-  isNetworkError, hasCache, loadFromCache, syncStatus, startAutoSync } from '../storage/supabase.js';
+  isNetworkError, hasCache, loadFromCache, syncStatus, startAutoSync, resolveActiveBusiness } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
 import { today } from '../utils/format.js';
 
@@ -75,10 +75,12 @@ function initCloudLogin(){
     useBackend('supabase');
     showSt('Cargando datos de la nube...','info');
     try{
+      const biz=await resolveActiveBusiness();
+      showSt(`Negocio: ${biz.name}. Cargando...`,'info');
       if(await countRows('orders')===0 && await countRows('menu_items')===0){
         form.classList.add('hidden');
         importPanel.classList.remove('hidden');
-        showSt('✔ Sesión iniciada. La base está vacía.','success');
+        showSt(`✔ Sesión en ${biz.name}. La base de este negocio está vacía.`,'success');
         return;
       }
       await loadFromSupabase();

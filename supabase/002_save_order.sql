@@ -1,5 +1,6 @@
 -- La Smashiza POS — guardado seguro desde varios dispositivos y sin conexión.
 -- Pegar completo en SQL Editor → Run. Es idempotente: se puede volver a correr.
+-- Tras multi-tenant, 003_multi_tenant.sql reemplaza save_order / apply_movement con business_id.
 
 -- El mismo nombre puede existir en dos categorías (ej. "Papas Gajo" como papas y como extra).
 alter table public.menu_items drop constraint if exists menu_items_name_key;

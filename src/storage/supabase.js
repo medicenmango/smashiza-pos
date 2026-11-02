@@ -1,4 +1,5 @@
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../config.js';
+import { BUSINESS_STORAGE_KEY, SMASHIZA_BUSINESS_ID } from '../constants.js';
 import { normOrderNum } from '../domain/inventory.js';
 import { orderItems, setOrderItems } from '../domain/orders.js';
 import { state } from '../state.js';
@@ -31,7 +32,20 @@ const str=v=>String(v??'').trim();
 const num=v=>{ const n=parseFloat(v); return isFinite(n)?n:0; };
 const numOrNull=v=>{ if(v===''||v==null) return null; const n=parseFloat(v); return isFinite(n)?n:null; };
 
-// ── Auth ──────────────────────────────────────────────────────
+function requireBusinessId(){
+  if(!state.businessId) throw new Error('No hay negocio activo. Cierra sesión y vuelve a entrar.');
+  return state.businessId;
+}
+
+function withBiz(row){
+  return { ...row, business_id:requireBusinessId() };
+}
+
+function scopeBiz(q){
+  return q.eq('business_id', requireBusinessId());
+}
+
+// ── Auth + negocio activo ─────────────────────────────────────
 export async function currentUser(){
   const { data }=await db().auth.getSession();
   return data.session?.user||null;
@@ -44,13 +58,57 @@ export async function signIn(email, password){
 export async function signOut(){
   loaded=false;
   outbox=[]; persistOutbox();
+  state.businessId=null;
+  state.businessName='';
+  state.businessRole='';
+  state.businesses=[];
   await clearCache();
   await db().auth.signOut();
 }
 
+function readStoredBusinessId(){
+  try{ return localStorage.getItem(BUSINESS_STORAGE_KEY)||''; }catch(_){ return ''; }
+}
+
+function storeBusinessId(id){
+  try{
+    if(id) localStorage.setItem(BUSINESS_STORAGE_KEY, id);
+    else localStorage.removeItem(BUSINESS_STORAGE_KEY);
+  }catch(_){}
+}
+
+function applyBusiness(b){
+  state.businessId=b.id;
+  state.businessName=b.name||'';
+  state.businessRole=b.role||'';
+  storeBusinessId(b.id);
+}
+
+/** Carga membresías y elige negocio (preferencia guardada → La Smashiza → primero). */
+export async function resolveActiveBusiness(){
+  const list=check(await db().rpc('list_my_businesses'))||[];
+  state.businesses=list.map(r=>({ id:r.id, name:r.name, slug:r.slug, role:r.role }));
+  if(!state.businesses.length){
+    throw new Error('Tu usuario no pertenece a ningún negocio. Corre la migración multi-tenant o pide que te agreguen como miembro.');
+  }
+  const preferred=readStoredBusinessId();
+  const pick=
+    state.businesses.find(b=>b.id===preferred)
+    || state.businesses.find(b=>b.id===SMASHIZA_BUSINESS_ID)
+    || state.businesses[0];
+  applyBusiness(pick);
+  return pick;
+}
+
+export function getActiveBusiness(){
+  return state.businessId
+    ? { id:state.businessId, name:state.businessName, role:state.businessRole }
+    : null;
+}
+
 // ── Row mapping (state shape ↔ DB) ────────────────────────────
 function orderToDb(o){
-  return {
+  return withBiz({
     num:parseInt(o['Num_Orden'],10),
     fecha:toYmd(o['Fecha']),
     hora:toHms(o['Hora'])||'00:00:00',
@@ -64,7 +122,7 @@ function orderToDb(o){
     cambio:numOrNull(o['Cambio']),
     estado:str(o['Estado'])||'Pendiente',
     client_id:o._cid||null,
-  };
+  });
 }
 
 function itemsToDb(o){
@@ -95,7 +153,7 @@ function orderFromDb(r, items){
 
 function movementToDb(m){
   const n=parseInt(m['Num_Orden'],10);
-  return {
+  return withBiz({
     fecha:toYmd(m['Fecha'])||fmtDate(),
     hora:toHms(m['Hora'])||fmtTime(),
     tipo:str(m['Tipo']),
@@ -104,50 +162,51 @@ function movementToDb(m){
     unit:str(m['Unidad']),
     order_num:Number.isFinite(n)?n:null,
     nota:str(m['Nota']),
-  };
+  });
 }
 
 // ── Tables synced by diff against the last saved snapshot ─────
 // serverOwned: columns the database maintains (stock moves only through movements).
+// pk siempre incluye business_id (composite PK multi-tenant).
 const SYNC={
   categories:{
-    pk:['id'],
-    rows:()=>menuCatalogRows().catRows.map((r,i)=>({ id:str(r.Id), label:str(r.Etiqueta), sort:i })),
+    pk:['business_id','id'],
+    rows:()=>menuCatalogRows().catRows.map((r,i)=>withBiz({ id:str(r.Id), label:str(r.Etiqueta), sort:i })),
   },
   menu_items:{
-    pk:['id'],
-    rows:()=>menuCatalogRows().menuRows.map(r=>({
+    pk:['business_id','id'],
+    rows:()=>menuCatalogRows().menuRows.map(r=>withBiz({
       id:str(r.Id), category:str(r.Categoria), emoji:str(r.Emoji), name:str(r.Nombre),
       price:Math.max(0, num(r.Precio)), sort:parseInt(r.Orden)||0,
     })),
   },
   catalog:{
-    pk:['name'],
-    rows:()=>menuCatalogRows().catalogRows.map(r=>({
+    pk:['business_id','name'],
+    rows:()=>menuCatalogRows().catalogRows.map(r=>withBiz({
       name:str(r.Producto), emoji:str(r.Emoji), category:str(r.Categoria), on_menu:r.EnMenu==='si',
     })),
   },
   product_costs:{
-    pk:['name'],
-    rows:()=>menuCatalogRows().costRows.map(r=>({ name:str(r.Producto), cost:Math.max(0, num(r.Costo)) })),
+    pk:['business_id','name'],
+    rows:()=>menuCatalogRows().costRows.map(r=>withBiz({ name:str(r.Producto), cost:Math.max(0, num(r.Costo)) })),
   },
   price_history:{
-    pk:['name','since'],
-    rows:()=>menuCatalogRows().priceRows.map(r=>({
+    pk:['business_id','name','since'],
+    rows:()=>menuCatalogRows().priceRows.map(r=>withBiz({
       name:str(r.Producto), since:toYmd(r.Desde)||'2000-01-01', price:Math.max(0, num(r.Precio)),
     })),
   },
   inventory:{
-    pk:['name'],
+    pk:['business_id','name'],
     serverOwned:['stock'],
-    rows:()=>state.inventory.map(i=>({
+    rows:()=>state.inventory.map(i=>withBiz({
       name:str(i['Nombre']), unit:str(i['Unidad']), stock:num(i['Stock']),
       minimo:num(i['Minimo']), ideal:num(i['Ideal']), proveedor:str(i['Proveedor']), nota:str(i['Nota']),
     })),
   },
   recipes:{
-    pk:['product','ingredient'],
-    rows:()=>state.recipes.map(r=>({
+    pk:['business_id','product','ingredient'],
+    rows:()=>state.recipes.map(r=>withBiz({
       product:str(r['Producto']), ingredient:str(r['Ingrediente']), qty:num(r['Cantidad']), unit:str(r['Unidad']),
     })).filter(r=>r.qty>0),
   },
@@ -262,22 +321,30 @@ function renumber(oldNum, newNum, cid){
 async function runOp(op){
   switch(op.k){
     case 'order': {
+      if(!op.order.business_id) op.order.business_id=requireBusinessId();
       const finalNum=check(await db().rpc('save_order', { p_order:op.order, p_items:op.items, p_is_new:op.isNew }));
       if(finalNum!==op.order.num) renumber(op.order.num, finalNum, op.order.client_id);
       return;
     }
     case 'del':
-      check(await db().from('orders').update({ deleted_at:op.at }).eq('num', op.num));
+      check(await scopeBiz(db().from('orders').update({ deleted_at:op.at }).eq('num', op.num)));
       return;
-    case 'mov':
-      check(await db().from('inventory_movements').upsert(op.rows, { onConflict:'client_id', ignoreDuplicates:true }));
+    case 'mov': {
+      const rows=(op.rows||[]).map(r=>r.business_id?r:withBiz(r));
+      check(await db().from('inventory_movements').upsert(rows, {
+        onConflict:'business_id,client_id', ignoreDuplicates:true,
+      }));
       return;
-    case 'up':
-      check(await db().from(op.t).upsert(op.rows, { onConflict:SYNC[op.t].pk.join(',') }));
+    }
+    case 'up': {
+      const rows=(op.rows||[]).map(r=>r.business_id?r:withBiz(r));
+      check(await db().from(op.t).upsert(rows, { onConflict:SYNC[op.t].pk.join(',') }));
       return;
+    }
     case 'rm': {
+      const pk=op.pk.business_id?op.pk:{ ...op.pk, business_id:requireBusinessId() };
       let q=db().from(op.t).delete();
-      Object.entries(op.pk).forEach(([c,v])=>{ q=q.eq(c, v); });
+      Object.entries(pk).forEach(([c,v])=>{ q=q.eq(c, v); });
       check(await q);
       return;
     }
@@ -376,6 +443,7 @@ async function cacheState(){
       allOrders:state.allOrders, inventory:state.inventory, recipes:state.recipes, movements:state.movements,
       saved:Object.fromEntries(Object.entries(saved).map(([t,m])=>[t,[...m]])),
       fileName:state.fileName, at:Date.now(),
+      businessId:state.businessId, businessName:state.businessName, businessRole:state.businessRole,
     }, 'state'));
   }catch(e){ console.warn('[Smashiza] no se pudo guardar la copia local', e); }
 }
@@ -399,6 +467,11 @@ export async function loadFromCache(){
   state.inventory=c.inventory;
   state.recipes=c.recipes;
   state.movements=c.movements;
+  if(c.businessId){
+    state.businessId=c.businessId;
+    state.businessName=c.businessName||'';
+    state.businessRole=c.businessRole||'';
+  }
   saved=Object.fromEntries(Object.entries(c.saved||{}).map(([t,entries])=>[t,new Map(entries)]));
   offline=true;
   loaded=true;
@@ -411,7 +484,7 @@ async function fetchAll(table, orderBy, filter){
   const out=[];
   const size=1000;
   for(let from=0;;from+=size){
-    let q=db().from(table).select('*');
+    let q=scopeBiz(db().from(table).select('*'));
     if(filter) q=filter(q);
     orderBy.forEach(c=>{ q=q.order(c); });
     const rows=check(await q.range(from, from+size-1));
@@ -420,13 +493,17 @@ async function fetchAll(table, orderBy, filter){
   }
 }
 
+/** Cuenta filas del negocio activo (o de toda la tabla si aún no hay negocio). */
 export async function countRows(table){
-  const { count, error }=await db().from(table).select('*', { count:'exact', head:true });
+  let q=db().from(table).select('*', { count:'exact', head:true });
+  if(state.businessId) q=q.eq('business_id', state.businessId);
+  const { count, error }=await q;
   if(error) throw new Error(error.message);
   return count||0;
 }
 
 export async function loadFromSupabase(){
+  if(!state.businessId) await resolveActiveBusiness();
   // Upload pending changes first so the fresh data already includes them.
   await flush();
   const [orders, items, inv, recipes, movements, cats, menu, catalog, costs, prices]=await Promise.all([
@@ -446,7 +523,8 @@ export async function loadFromSupabase(){
   state.workbook=null;
   state.fileHandle=null;
   state.demoMode=false;
-  state.fileName=user?.email||'Supabase';
+  const bizLabel=state.businessName?` · ${state.businessName}`:'';
+  state.fileName=(user?.email||'Supabase')+bizLabel;
 
   const byOrder=new Map();
   items.forEach(i=>{
@@ -501,7 +579,9 @@ async function insertChunks(table, rows){
 }
 
 export async function importStateToSupabase(){
-  if(await countRows('orders')>0) throw new Error('La base ya tiene órdenes; no importo para no duplicar.');
+  if(!state.businessId) await resolveActiveBusiness();
+  if(await countRows('orders')>0) throw new Error('Este negocio ya tiene órdenes; no importo para no duplicar.');
+  const bid=requireBusinessId();
   const skipped=[];
   const seen=new Set();
   const orderRows=[], itemRows=[];
@@ -510,7 +590,7 @@ export async function importStateToSupabase(){
     if(!(r.num>0) || !r.fecha || seen.has(r.num)){ skipped.push(o['Num_Orden']); return; }
     seen.add(r.num);
     orderRows.push(r);
-    itemsToDb(o).forEach(i=>itemRows.push({ order_num:r.num, ...i }));
+    itemsToDb(o).forEach(i=>itemRows.push({ business_id:bid, order_num:r.num, ...i }));
   });
   saved={};
   Object.keys(SYNC).forEach(t=>{ saved[t]=new Map(); });
