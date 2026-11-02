@@ -18,4 +18,10 @@ export const state = {
   businessName: '',
   businessRole: '',
   businesses: [],
+  // Branding ticket / header (Hito 2)
+  ticketName: '',
+  ticketTagline: '',
+  phone: '',
+  ticketFooter: '',
+  logoPath: '',
 };

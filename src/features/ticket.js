@@ -1,3 +1,4 @@
+import { activeBranding } from '../domain/branding.js';
 import { cartSubtotal, cartTotal } from './nueva-orden.js';
 import { state } from '../state.js';
 import { toast } from '../ui/toast.js';
@@ -58,7 +59,18 @@ export function collectEditOrderTicket(){
   };
 }
 
-export function layoutTicket(ctx, data, W, pad){
+function loadLogoImage(url){
+  if(!url) return Promise.resolve(null);
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>resolve(img);
+    img.onerror=()=>resolve(null);
+    img.src=url;
+  });
+}
+
+export function layoutTicket(ctx, data, W, pad, brand, logoImg){
   const inner=W-pad*2;
   const body='16px "Share Tech Mono","Courier New",monospace';
   const small='13px "Share Tech Mono","Courier New",monospace';
@@ -66,9 +78,22 @@ export function layoutTicket(ctx, data, W, pad){
   const total='700 30px "Share Tech Mono","Courier New",monospace';
   const rows=[];
   const add=(kind, payload)=>rows.push({kind, ...payload});
+  if(logoImg){
+    const maxH=64, maxW=inner;
+    const scale=Math.min(maxW/logoImg.width, maxH/logoImg.height, 1);
+    add('logo', {img:logoImg, w:logoImg.width*scale, h:logoImg.height*scale+8});
+  }
   ctx.font=title;
-  add('title', {text:'LA SMASHIZA', h:28});
-  add('sub', {text:'RETRO BURGER', h:22});
+  const nameLines=wrapCanvasText(ctx, (brand.name||'MI NEGOCIO').toUpperCase(), inner);
+  nameLines.forEach((text,i)=>add(i===0?'title':'sub', {text, h:i===0?28:22}));
+  if(brand.tagline){
+    ctx.font=small;
+    wrapCanvasText(ctx, brand.tagline.toUpperCase(), inner).forEach(text=>add('sub', {text, h:20}));
+  }
+  if(brand.phone){
+    ctx.font=small;
+    add('meta', {text:'Tel: '+brand.phone, h:20});
+  }
   add('gap', {h:10});
   ctx.font=small;
   if(data.cliente){
@@ -88,8 +113,8 @@ export function layoutTicket(ctx, data, W, pad){
   const priceW=90;
   data.lines.forEach(line=>{
     const left=`${line.qty}× ${line.name}`;
-    const nameLines=wrapCanvasText(ctx, left, inner-priceW);
-    nameLines.forEach((text,i)=>add('item', {
+    const nameItemLines=wrapCanvasText(ctx, left, inner-priceW);
+    nameItemLines.forEach((text,i)=>add('item', {
       text, price:i===0?fmtMoney(line.sub):'', h:24
     }));
   });
@@ -103,15 +128,21 @@ export function layoutTicket(ctx, data, W, pad){
     });
   }
   add('total', {label:'TOTAL', value:fmtMoney(data.total), h:40});
-  add('foot', {text:'Confirma tu pedido por WhatsApp', h:22});
+  if(brand.footer){
+    ctx.font=small;
+    wrapCanvasText(ctx, brand.footer, inner).forEach(text=>add('foot', {text, h:20}));
+  }
+  add('powered', {text:brand.poweredBy||'powered by Smashiza', h:22});
   const height=pad + rows.reduce((s,r)=>s+r.h,0) + pad;
   return {rows, height, fonts:{body, small, title, total}, inner, priceW};
 }
 
-export function drawTicketBlob(data){
+export async function drawTicketBlob(data){
+  const brand=activeBranding();
+  const logoImg=await loadLogoImage(brand.logoUrl);
   const W=560, pad=28, scale=2;
   const probe=document.createElement('canvas').getContext('2d');
-  const layout=layoutTicket(probe, data, W, pad);
+  const layout=layoutTicket(probe, data, W, pad, brand, logoImg);
   const canvas=document.createElement('canvas');
   canvas.width=W*scale; canvas.height=layout.height*scale;
   const ctx=canvas.getContext('2d');
@@ -123,7 +154,10 @@ export function drawTicketBlob(data){
   ctx.strokeRect(8,8,W-16,layout.height-16);
   let y=pad;
   layout.rows.forEach(r=>{
-    if(r.kind==='title'){
+    if(r.kind==='logo'){
+      const x=pad;
+      ctx.drawImage(r.img, x, y, r.w, r.h-8);
+    } else if(r.kind==='title'){
       ctx.fillStyle='#ffd700'; ctx.font=layout.fonts.title;
       ctx.fillText(r.text, pad, y+18);
     } else if(r.kind==='sub'){
@@ -157,6 +191,9 @@ export function drawTicketBlob(data){
       ctx.textAlign='right'; ctx.fillText(r.value, W-pad, y+26); ctx.textAlign='left';
     } else if(r.kind==='foot'){
       ctx.fillStyle='#4d7fff'; ctx.font=layout.fonts.small;
+      ctx.fillText(r.text, pad, y+14);
+    } else if(r.kind==='powered'){
+      ctx.fillStyle='#8877aa'; ctx.font=layout.fonts.small;
       ctx.fillText(r.text, pad, y+14);
     }
     y+=r.h;

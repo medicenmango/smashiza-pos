@@ -3,6 +3,7 @@ import { renderClientsTab } from './clientes.js';
 import { refreshDashboard } from './dashboard.js';
 import { renderInventory } from './inventario.js';
 import { renderMenuEditor } from './menu-editor.js';
+import { renderNegocioTab } from './negocio.js';
 import { stampNewOrderWhen, renderLiveQueue } from './nueva-orden.js';
 import { renderOrdersTable } from './ordenes.js';
 
@@ -25,6 +26,7 @@ export function initNav(){
       if(btn.dataset.tab==='tab-clientes')  renderClientsTab();
       if(btn.dataset.tab==='tab-analisis'){ renderCostEditor(); renderBA(); }
       if(btn.dataset.tab==='tab-inventario') renderInventory();
+      if(btn.dataset.tab==='tab-negocio') renderNegocioTab();
     });
   });
 }

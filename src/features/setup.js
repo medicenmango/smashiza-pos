@@ -7,8 +7,10 @@ import { state } from '../state.js';
 import { pickFile, handleFromDrop, loadExcel, loadDemoWorkbook, createNewExcel, canWriteHandle, loadWorkbookForImport, downloadBackup } from '../storage/excel.js';
 import { onSyncChange } from '../storage/events.js';
 import { onDataLoaded, useBackend } from '../storage/index.js';
-import { currentUser, signIn, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog,
-  isNetworkError, hasCache, loadFromCache, syncStatus, startAutoSync, resolveActiveBusiness } from '../storage/supabase.js';
+import { applyChromeBranding } from '../domain/branding.js';
+import { currentUser, signIn, signUp, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog,
+  isNetworkError, hasCache, loadFromCache, syncStatus, startAutoSync, resolveActiveBusiness, createMyBusiness,
+} from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
 import { today } from '../utils/format.js';
 
@@ -52,6 +54,7 @@ function onLoaded(){
   document.getElementById('btn-backup').classList.toggle('hidden', !state.cloud);
   document.getElementById('btn-logout').classList.toggle('hidden', !state.cloud);
   updateWriteMode();
+  applyChromeBranding();
 }
 
 function statusFn(id){
@@ -62,11 +65,31 @@ function statusFn(id){
 function initCloudLogin(){
   const showSt=statusFn('login-status');
   const form=document.getElementById('login-form');
+  const signupForm=document.getElementById('signup-form');
   const importPanel=document.getElementById('import-panel');
+  const createBizPanel=document.getElementById('create-business-panel');
+  const linkSignup=document.getElementById('link-show-signup');
+
+  function showLogin(){
+    form?.classList.remove('hidden');
+    signupForm?.classList.add('hidden');
+    createBizPanel?.classList.add('hidden');
+    importPanel?.classList.add('hidden');
+    linkSignup?.parentElement?.classList.remove('hidden');
+  }
+
+  function showCreateBusiness(){
+    form?.classList.add('hidden');
+    signupForm?.classList.add('hidden');
+    importPanel?.classList.add('hidden');
+    linkSignup?.parentElement?.classList.add('hidden');
+    createBizPanel?.classList.remove('hidden');
+  }
 
   async function enterOffline(){
     useBackend('supabase');
     await loadFromCache();
+    applyChromeBranding();
     goToApp();
     toast('📴 Sin conexión: trabajas con los datos guardados en este dispositivo. Lo nuevo se sube solo al volver internet.','info',8000);
   }
@@ -76,9 +99,18 @@ function initCloudLogin(){
     showSt('Cargando datos de la nube...','info');
     try{
       const biz=await resolveActiveBusiness();
+      if(!biz){
+        showCreateBusiness();
+        showSt('✔ Sesión iniciada. Crea tu negocio para continuar.','success');
+        return;
+      }
+      applyChromeBranding();
       showSt(`Negocio: ${biz.name}. Cargando...`,'info');
       if(await countRows('orders')===0 && await countRows('menu_items')===0){
         form.classList.add('hidden');
+        signupForm?.classList.add('hidden');
+        createBizPanel?.classList.add('hidden');
+        linkSignup?.parentElement?.classList.add('hidden');
         importPanel.classList.remove('hidden');
         showSt(`✔ Sesión en ${biz.name}. La base de este negocio está vacía.`,'success');
         return;
@@ -107,6 +139,19 @@ function initCloudLogin(){
     }catch(e){ showSt('Error al importar: '+e.message,'error'); }
   }
 
+  linkSignup?.addEventListener('click',e=>{
+    e.preventDefault();
+    form.classList.add('hidden');
+    signupForm?.classList.remove('hidden');
+    linkSignup.parentElement?.classList.add('hidden');
+    showSt('Crea tu cuenta. Después configurarás el negocio.','info');
+  });
+  document.getElementById('btn-signup-cancel')?.addEventListener('click',()=>{
+    showLogin();
+    showSt('','info');
+    document.getElementById('login-status')?.classList.add('hidden');
+  });
+
   form.addEventListener('submit',async e=>{
     e.preventDefault();
     const btn=document.getElementById('btn-login');
@@ -120,6 +165,53 @@ function initCloudLogin(){
       const msg=/invalid login credentials/i.test(e.message)?'Correo o contraseña incorrectos.':e.message;
       showSt('Error: '+msg,'error');
     }finally{ btn.disabled=false; }
+  });
+
+  signupForm?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const btn=document.getElementById('btn-signup');
+    if(btn) btn.disabled=true;
+    try{
+      showSt('Creando cuenta...','info');
+      await signUp(
+        document.getElementById('signup-email').value.trim(),
+        document.getElementById('signup-password').value,
+      );
+      document.getElementById('signup-password').value='';
+      await enterCloud();
+    }catch(err){
+      showSt('Error: '+err.message,'error');
+    }finally{
+      if(btn) btn.disabled=false;
+    }
+  });
+
+  document.getElementById('create-business-form')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const btn=document.getElementById('btn-create-biz');
+    if(btn) btn.disabled=true;
+    try{
+      const name=document.getElementById('create-biz-name').value.trim();
+      const ticketName=document.getElementById('create-biz-ticket-name').value.trim()||name;
+      const phone=document.getElementById('create-biz-phone').value.trim();
+      const footer=document.getElementById('create-biz-footer').value.trim();
+      showSt('Creando negocio...','info');
+      await createMyBusiness({ name, ticketName, phone, ticketFooter:footer||null });
+      applyChromeBranding();
+      createBizPanel?.classList.add('hidden');
+      if(await countRows('orders')===0 && await countRows('menu_items')===0){
+        importPanel.classList.remove('hidden');
+        showSt(`✔ Negocio “${ticketName}” listo. Puedes importar Excel o empezar vacío. El logo se sube en la pestaña NEGOCIO.`,'success');
+        return;
+      }
+      await loadFromSupabase();
+      showSt('✔ Negocio listo.','success');
+      goToApp();
+    }catch(err){
+      showSt('Error: '+err.message,'error');
+    }finally{
+      if(btn) btn.disabled=false;
+    }
   });
 
   const idz=document.getElementById('import-drop-zone');
