@@ -355,13 +355,19 @@ begin
   end if;
 
   if v_found is not null then
+    -- Reintento offline / misma orden: conservar el número ya asignado
     v_num := v_found;
-  elsif p_is_new and exists (
-    select 1 from public.orders where business_id = v_bid and num = v_num
-  ) then
+  elsif p_is_new then
+    -- Alta nueva: ignorar num del cliente; siguiente consecutivo del negocio
+    -- (detalle y parche: 004_save_order_next_num.sql)
     select coalesce(max(num), 0) + 1 into v_num
       from public.orders
      where business_id = v_bid;
+  end if;
+  -- p_is_new=false: se respeta v_num del payload (edición; no renumerar existentes)
+
+  if v_num is null or v_num <= 0 then
+    raise exception 'save_order: num inválido';
   end if;
 
   insert into public.orders as o (
