@@ -3,7 +3,7 @@
    Permite uso offline básico
 ════════════════════════════════════════ */
 
-const CACHE_NAME = 'smashiza-pos-v29';
+const CACHE_NAME = 'smashiza-pos-v31';
 
 const ASSETS = [
   './',
@@ -13,6 +13,7 @@ const ASSETS = [
   './src/config.js',
   './src/constants.js',
   './src/state.js',
+  './src/auth/roles.js',
   './src/utils/format.js',
   './src/ui/toast.js',
   './src/ui/clock.js',

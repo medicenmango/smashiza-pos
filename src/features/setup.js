@@ -1,6 +1,7 @@
 import { refreshDashboard } from './dashboard.js';
 import { renderInventory } from './inventario.js';
 import { renderMenuEditor, refreshCategoryLabels } from './menu-editor.js';
+import { applyRoleNav } from './nav.js';
 import { renderMenuGrid, updateOrderNumBadge } from './nueva-orden.js';
 import { renderOrdersTable } from './ordenes.js';
 import { state } from '../state.js';
@@ -57,6 +58,7 @@ function onLoaded(){
   document.getElementById('btn-logout').classList.toggle('hidden', !state.cloud);
   updateWriteMode();
   applyChromeBranding();
+  applyRoleNav();
 }
 
 function statusFn(id){

@@ -1,3 +1,4 @@
+import { isOwner } from '../auth/roles.js';
 import { DIAS_SEMANA } from '../constants.js';
 import { loadCosts, saveCosts, loadCatalog, syncCatalogFromMenu, priceAt, costEditorRows } from '../domain/catalog.js';
 import { CAT_LABELS, MENU, getCatLabel } from '../domain/menu.js';
@@ -202,9 +203,13 @@ export function renderBARangePicker(){ reBuildBAMonths(); }
 // ── COST EDITOR ───────────────────────────────────────────
 // Always reads from live MENU so new products appear automatically
 export function renderCostEditor(){
-  const costs=loadCosts();
   const el=document.getElementById('ba-cost-editor');
   if(!el) return;
+  if(!isOwner()){
+    el.innerHTML='<p class="setup-hint">Solo el dueño puede ver y editar costos.</p>';
+    return;
+  }
+  const costs=loadCosts();
 
   const rows=costEditorRows();
   const catOrder=[...new Set([...Object.keys(CAT_LABELS),...rows.map(i=>i.cat)])];
@@ -307,6 +312,7 @@ export function openHourModal(hour, orders){
 
 // ── MAIN RENDER ───────────────────────────────────────────
 export function renderBA(){
+  if(!isOwner()) return;
   const orders=getBAOrders();
   syncCatalogFromMenu();
   refreshCategoryLabels();

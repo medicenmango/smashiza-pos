@@ -293,6 +293,42 @@ export async function deleteMyBusiness({ businessId, confirmName }={}){
   return next;
 }
 
+/** Lista miembros del negocio (RPC). Visible a cualquier miembro. */
+export async function listBusinessMembers(businessId){
+  const bid=businessId||requireBusinessId();
+  const rows=check(await db().rpc('list_business_members', { p_business_id:bid }))||[];
+  return rows.map(r=>({
+    userId:r.user_id,
+    email:r.email||'',
+    role:r.role||'',
+    createdAt:r.created_at,
+  }));
+}
+
+/** Invita por correo como cajero (debe existir en Auth). Solo owner. */
+export async function inviteBusinessCashier({ businessId, email }={}){
+  const bid=businessId||requireBusinessId();
+  if(state.businessRole!=='owner'){
+    throw new Error('Solo el dueño puede invitar cajeros.');
+  }
+  return check(await db().rpc('invite_business_cashier', {
+    p_business_id:bid,
+    p_email:email,
+  }));
+}
+
+/** Quita un miembro del negocio. Solo owner. */
+export async function removeBusinessMember({ businessId, userId }={}){
+  const bid=businessId||requireBusinessId();
+  if(state.businessRole!=='owner'){
+    throw new Error('Solo el dueño puede quitar miembros.');
+  }
+  check(await db().rpc('remove_business_member', {
+    p_business_id:bid,
+    p_user_id:userId,
+  }));
+}
+
 // ── Row mapping (state shape ↔ DB) ────────────────────────────
 function orderToDb(o){
   return withBiz({
@@ -460,6 +496,8 @@ function queueInventory(){
   // Movements first: for a brand-new item the movement finds no row yet, then the
   // insert carries the full stock; for existing items the trigger applies the delta.
   queueNewMovements();
+  // Cajero: solo movimientos (RLS bloquea write de inventory/recipes).
+  if(state.cloud && state.businessRole && state.businessRole!=='owner') return;
   INV_TABLES.forEach(queueTableDiff);
 }
 
@@ -704,6 +742,7 @@ export async function loadFromSupabase(){
   if(!state.businessId) await resolveActiveBusiness();
   // Upload pending changes first so the fresh data already includes them.
   await flush();
+  const owner=state.businessRole==='owner';
   const [orders, items, inv, recipes, movements, cats, menu, catalog, costs, prices]=await Promise.all([
     fetchAll('orders', ['num'], q=>q.is('deleted_at', null)),
     fetchAll('order_items', ['order_num','line']),
@@ -713,7 +752,8 @@ export async function loadFromSupabase(){
     fetchAll('categories', ['sort','id']),
     fetchAll('menu_items', ['category','sort']),
     fetchAll('catalog', ['name']),
-    fetchAll('product_costs', ['name']),
+    // Costos: RLS solo owner (cajero no debe ver márgenes)
+    owner?fetchAll('product_costs', ['name']):Promise.resolve([]),
     fetchAll('price_history', ['name','since']),
   ]);
   const user=await currentUser();
@@ -829,6 +869,16 @@ export const supabaseBackend={
     queueInventory();
     await commit();
   },
-  saveInventory:async()=>{ queueInventory(); await commit(); },
-  saveMenuCatalog:async()=>{ MENU_TABLES.forEach(queueTableDiff); await commit(); },
+  saveInventory:async()=>{
+    if(state.cloud && state.businessRole && state.businessRole!=='owner'){
+      throw new Error('Solo el dueño puede editar inventario.');
+    }
+    queueInventory(); await commit();
+  },
+  saveMenuCatalog:async()=>{
+    if(state.cloud && state.businessRole && state.businessRole!=='owner'){
+      throw new Error('Solo el dueño puede editar menú/costos.');
+    }
+    MENU_TABLES.forEach(queueTableDiff); await commit();
+  },
 };

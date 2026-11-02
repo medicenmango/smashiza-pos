@@ -1,3 +1,4 @@
+import { isOwner } from '../auth/roles.js';
 import { recordMenuPrice, markCatalogOffMenu, clearCatalogLocal } from '../domain/catalog.js';
 import {
   CAT_LABELS, MENU, getCatLabel, isSmashizaTenant,
@@ -11,6 +12,11 @@ import { uid, escHtml } from '../utils/format.js';
 
 export function renderMenuEditor(){
   const el=document.getElementById('menu-editor-content');
+  if(!el) return;
+  if(!isOwner()){
+    el.innerHTML='<p class="setup-hint">Solo el dueño puede editar el menú.</p>';
+    return;
+  }
   const catsFromMenu=[...new Set(MENU.map(i=>i.cat))];
   const catsFromLabels=Object.keys(CAT_LABELS);
   const cats=[...new Set([...catsFromLabels,...catsFromMenu])];
