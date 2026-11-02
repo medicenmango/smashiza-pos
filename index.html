@@ -33,10 +33,12 @@
       </form>
       <p class="setup-hint">¿Negocio nuevo? <a href="#" id="link-show-signup">Crear cuenta</a> (usuario + contraseña, sin correo)</p>
       <form id="signup-form" class="login-form hidden">
+        <h2 class="card-title"><span class="pixel-icon">✨</span> CREAR CUENTA</h2>
+        <p class="setup-hint">Usuario + contraseña. Sin correo. Si ya tienes cuenta, vuelve atrás.</p>
         <div class="form-group"><label>USUARIO</label><input type="text" id="signup-user" class="pixel-input" autocomplete="username" required minlength="3" maxlength="32" placeholder="ej. taqueria_elguero"/></div>
         <div class="form-group"><label>CONTRASEÑA</label><input type="password" id="signup-password" class="pixel-input" autocomplete="new-password" minlength="6" required/></div>
         <button type="submit" class="btn-primary" id="btn-signup">► CREAR CUENTA</button>
-        <button type="button" class="btn-secondary" id="btn-signup-cancel">Volver a entrar</button>
+        <button type="button" class="btn-secondary" id="btn-signup-cancel">← ATRÁS · Ya tengo cuenta</button>
       </form>
       <div id="create-business-panel" class="hidden">
         <h2 class="card-title"><span class="pixel-icon">🏪</span> TU NEGOCIO</h2>
@@ -47,6 +49,7 @@
           <div class="form-group"><label>TELÉFONO (opcional)</label><input type="tel" id="create-biz-phone" class="pixel-input" maxlength="40"/></div>
           <div class="form-group"><label>MENSAJE PIE DEL TICKET</label><input type="text" id="create-biz-footer" class="pixel-input" maxlength="120" placeholder="Confirma tu pedido por WhatsApp"/></div>
           <button type="submit" class="btn-primary" id="btn-create-biz">► CREAR NEGOCIO</button>
+          <button type="button" class="btn-secondary" id="btn-create-biz-back">← ATRÁS · Cerrar sesión</button>
         </form>
       </div>
       <div id="import-panel" class="hidden">
@@ -57,6 +60,7 @@
           <div class="drop-sub">Haz clic o arrastra el archivo aquí</div>
         </div>
         <button type="button" class="btn-secondary" id="btn-start-empty">EMPEZAR CON MENÚ VACÍO</button>
+        <button type="button" class="btn-secondary" id="btn-import-back">← ATRÁS · Cerrar sesión</button>
         <p class="setup-hint">Negocios nuevos: categorías Platillos / Bebidas / Extras sin productos de Smashiza. La Smashiza conserva su menú propio.</p>
       </div>
       <div id="login-status" class="status-msg hidden"></div>

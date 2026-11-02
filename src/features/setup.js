@@ -90,6 +90,14 @@ function initCloudLogin(){
     createBizPanel?.classList.remove('hidden');
   }
 
+  /** Vuelve a ENTRAR. Cierra sesión si había una (p.ej. tras signup sin negocio). */
+  async function backToLogin(){
+    try{ await signOut(); }catch(_){}
+    showLogin();
+    const st=document.getElementById('login-status');
+    if(st){ st.textContent=''; st.classList.add('hidden'); }
+  }
+
   async function enterOffline(){
     useBackend('supabase');
     await loadFromCache();
@@ -151,9 +159,13 @@ function initCloudLogin(){
     showSt('Elige un usuario y contraseña. Sin correo ni confirmación.','info');
   });
   document.getElementById('btn-signup-cancel')?.addEventListener('click',()=>{
-    showLogin();
-    showSt('','info');
-    document.getElementById('login-status')?.classList.add('hidden');
+    backToLogin();
+  });
+  document.getElementById('btn-create-biz-back')?.addEventListener('click',()=>{
+    backToLogin();
+  });
+  document.getElementById('btn-import-back')?.addEventListener('click',()=>{
+    backToLogin();
   });
 
   form.addEventListener('submit',async e=>{
