@@ -87,8 +87,13 @@ html,body{height:100%;background:var(--bg-dark);color:var(--beige);font-family:v
 /* TOPBAR */
 .topbar{display:flex;align-items:center;gap:1rem;padding:.5rem 1rem;background:var(--bg-mid);border-bottom:2px solid var(--border);flex-shrink:0;position:relative;}
 .topbar::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--red),var(--blue-mid),var(--yellow));opacity:.5;}
+.topbar-brand{display:flex;align-items:center;gap:.45rem;min-width:0;}
+.topbar-logo{height:28px;width:auto;max-width:72px;object-fit:contain;border-radius:2px;background:rgba(255,255,255,.06);}
 .brand-pixel{font-family:var(--pixel);font-size:8px;color:var(--yellow);text-shadow:2px 2px 0 var(--red-dark);white-space:nowrap;}
 .topbar-file{display:flex;align-items:center;gap:.4rem;flex:1;overflow:hidden;}
+.biz-logo-row{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;}
+.biz-logo-preview{height:56px;width:auto;max-width:120px;object-fit:contain;border:1px solid var(--border);border-radius:2px;background:rgba(255,255,255,.04);padding:4px;}
+#biz-logo-file{font-size:12px;color:var(--beige-dark);max-width:100%;}
 .file-label{font-family:var(--pixel);font-size:7px;color:var(--blue-light);white-space:nowrap;}
 .file-name{font-family:var(--mono);font-size:11px;color:var(--green);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}
 .file-write-mode{font-family:var(--pixel);font-size:6px;letter-spacing:.5px;white-space:nowrap;}

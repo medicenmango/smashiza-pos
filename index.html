@@ -31,6 +31,24 @@
         <div class="form-group"><label>CONTRASEÑA</label><input type="password" id="login-password" class="pixel-input" autocomplete="current-password" required/></div>
         <button type="submit" class="btn-primary" id="btn-login">► ENTRAR</button>
       </form>
+      <p class="setup-hint">¿Negocio nuevo? <a href="#" id="link-show-signup">Crear cuenta</a></p>
+      <form id="signup-form" class="login-form hidden">
+        <div class="form-group"><label>CORREO</label><input type="email" id="signup-email" class="pixel-input" autocomplete="username" required/></div>
+        <div class="form-group"><label>CONTRASEÑA</label><input type="password" id="signup-password" class="pixel-input" autocomplete="new-password" minlength="6" required/></div>
+        <button type="submit" class="btn-primary" id="btn-signup">► CREAR CUENTA</button>
+        <button type="button" class="btn-secondary" id="btn-signup-cancel">Volver a entrar</button>
+      </form>
+      <div id="create-business-panel" class="hidden">
+        <h2 class="card-title"><span class="pixel-icon">🏪</span> TU NEGOCIO</h2>
+        <p class="setup-hint">Crea tu negocio. Luego podrás subir logo y datos del ticket. El pie fijo será “powered by Smashiza”.</p>
+        <form id="create-business-form" class="login-form">
+          <div class="form-group"><label>NOMBRE DEL NEGOCIO</label><input type="text" id="create-biz-name" class="pixel-input" required maxlength="80" placeholder="Ej: Taquería El Guero"/></div>
+          <div class="form-group"><label>NOMBRE EN EL TICKET</label><input type="text" id="create-biz-ticket-name" class="pixel-input" maxlength="80" placeholder="Igual al nombre si lo dejas vacío"/></div>
+          <div class="form-group"><label>TELÉFONO (opcional)</label><input type="tel" id="create-biz-phone" class="pixel-input" maxlength="40"/></div>
+          <div class="form-group"><label>MENSAJE PIE DEL TICKET</label><input type="text" id="create-biz-footer" class="pixel-input" maxlength="120" placeholder="Confirma tu pedido por WhatsApp"/></div>
+          <button type="submit" class="btn-primary" id="btn-create-biz">► CREAR NEGOCIO</button>
+        </form>
+      </div>
       <div id="import-panel" class="hidden">
         <p class="setup-hint">Tu base en la nube está vacía. Importa tu Excel actual para subir menú, costos, inventario y todas las órdenes. Tu Excel no se modifica.</p>
         <div class="file-drop-zone" id="import-drop-zone" role="button" tabindex="0">
@@ -62,7 +80,10 @@
 <!-- ══ APP ══ -->
 <div id="screen-app" class="screen hidden">
   <header class="topbar">
-    <div class="topbar-brand"><span class="brand-pixel">★ SMASHIZA POS</span></div>
+    <div class="topbar-brand">
+      <img id="topbar-logo" class="topbar-logo hidden" alt=""/>
+      <span class="brand-pixel" id="topbar-brand-text">★ SMASHIZA POS</span>
+    </div>
     <div class="topbar-file">
       <span class="file-label" id="file-label">EXCEL:</span>
       <span id="active-filename" class="file-name">—</span>
@@ -82,7 +103,39 @@
     <button class="nav-btn" data-tab="tab-menu"><span class="nav-icon">🗂️</span><span class="nav-label">MENÚ</span></button>
     <button class="nav-btn" data-tab="tab-inventario"><span class="nav-icon">📦</span><span class="nav-label">INVENTARIO <span id="inv-badge" class="inv-badge hidden">0</span></span></button>
     <button class="nav-btn" data-tab="tab-analisis"><span class="nav-icon">📈</span><span class="nav-label">ANÁLISIS</span></button>
+    <button class="nav-btn" data-tab="tab-negocio"><span class="nav-icon">🏪</span><span class="nav-label">NEGOCIO</span></button>
   </nav>
+
+  <!-- ── NEGOCIO / BRANDING ── -->
+  <div id="tab-negocio" class="tab-content hidden">
+    <p class="biz-cloud-only setup-hint hidden">La marca del ticket solo aplica en modo nube (Supabase).</p>
+    <div class="biz-editor">
+      <div class="card">
+        <h2 class="card-title"><span class="pixel-icon">🏪</span> MARCA DEL TICKET</h2>
+        <p id="biz-active-meta" class="setup-hint"></p>
+        <p id="biz-readonly-hint" class="setup-hint hidden">Solo el dueño puede editar nombre, teléfono, pie y logo.</p>
+        <form id="biz-branding-form" class="login-form" style="max-width:420px">
+          <div class="form-group"><label>NOMBRE COMERCIAL</label><input type="text" id="biz-ticket-name" class="pixel-input" required maxlength="80"/></div>
+          <div class="form-group"><label>LEMA / SEGUNDA LÍNEA</label><input type="text" id="biz-ticket-tagline" class="pixel-input" maxlength="80" placeholder="Opcional"/></div>
+          <div class="form-group"><label>TELÉFONO</label><input type="tel" id="biz-phone" class="pixel-input" maxlength="40"/></div>
+          <div class="form-group"><label>MENSAJE PIE (ticket)</label><input type="text" id="biz-ticket-footer" class="pixel-input" maxlength="120"/></div>
+          <p class="setup-hint">Pie fijo en todos los tickets: <strong>powered by Smashiza</strong></p>
+          <div class="form-group">
+            <label>LOGO</label>
+            <div class="biz-logo-row">
+              <img id="biz-logo-preview" class="biz-logo-preview hidden" alt="Logo"/>
+              <input type="file" id="biz-logo-file" accept="image/png,image/jpeg,image/webp,image/gif"/>
+              <button type="button" class="btn-secondary" id="biz-logo-clear">Quitar logo</button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" id="biz-save-brand">► GUARDAR MARCA</button>
+        </form>
+        <div id="biz-create-extra" class="hidden" style="margin-top:1.25rem">
+          <button type="button" class="btn-secondary" id="biz-create-extra-btn">＋ Crear otro negocio</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ── BUSINESS ANALYSIS ── -->
   <div id="tab-analisis" class="tab-content hidden">

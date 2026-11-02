@@ -58,10 +58,7 @@ export async function signIn(email, password){
 export async function signOut(){
   loaded=false;
   outbox=[]; persistOutbox();
-  state.businessId=null;
-  state.businessName='';
-  state.businessRole='';
-  state.businesses=[];
+  clearBusinessState();
   await clearCache();
   await db().auth.signOut();
 }
@@ -77,19 +74,52 @@ function storeBusinessId(id){
   }catch(_){}
 }
 
+function mapBusinessRow(r){
+  return {
+    id:r.id,
+    name:r.name,
+    slug:r.slug,
+    role:r.role,
+    ticketName:r.ticket_name||r.name||'',
+    ticketTagline:r.ticket_tagline||'',
+    phone:r.phone||'',
+    ticketFooter:r.ticket_footer||'',
+    logoPath:r.logo_path||'',
+  };
+}
+
 function applyBusiness(b){
   state.businessId=b.id;
   state.businessName=b.name||'';
   state.businessRole=b.role||'';
+  state.ticketName=b.ticketName||b.name||'';
+  state.ticketTagline=b.ticketTagline||'';
+  state.phone=b.phone||'';
+  state.ticketFooter=b.ticketFooter||'';
+  state.logoPath=b.logoPath||'';
   storeBusinessId(b.id);
 }
 
-/** Carga membresías y elige negocio (preferencia guardada → La Smashiza → primero). */
+function clearBusinessState(){
+  state.businessId=null;
+  state.businessName='';
+  state.businessRole='';
+  state.businesses=[];
+  state.ticketName='';
+  state.ticketTagline='';
+  state.phone='';
+  state.ticketFooter='';
+  state.logoPath='';
+  storeBusinessId('');
+}
+
+/** Carga membresías y elige negocio. Sin membresías → null (UI de crear negocio). */
 export async function resolveActiveBusiness(){
   const list=check(await db().rpc('list_my_businesses'))||[];
-  state.businesses=list.map(r=>({ id:r.id, name:r.name, slug:r.slug, role:r.role }));
+  state.businesses=list.map(mapBusinessRow);
   if(!state.businesses.length){
-    throw new Error('Tu usuario no pertenece a ningún negocio. Corre la migración multi-tenant o pide que te agreguen como miembro.');
+    clearBusinessState();
+    return null;
   }
   const preferred=readStoredBusinessId();
   const pick=
@@ -102,8 +132,103 @@ export async function resolveActiveBusiness(){
 
 export function getActiveBusiness(){
   return state.businessId
-    ? { id:state.businessId, name:state.businessName, role:state.businessRole }
+    ? {
+      id:state.businessId, name:state.businessName, role:state.businessRole,
+      ticketName:state.ticketName, ticketTagline:state.ticketTagline,
+      phone:state.phone, ticketFooter:state.ticketFooter, logoPath:state.logoPath,
+    }
     : null;
+}
+
+export async function signUp(email, password){
+  const { data, error }=await db().auth.signUp({ email, password });
+  if(error) throw new Error(error.message);
+  if(!data.session){
+    throw new Error('Cuenta creada. Revisa tu correo para confirmar antes de entrar.');
+  }
+  return data.user;
+}
+
+export async function createMyBusiness({ name, ticketName, ticketTagline, phone, ticketFooter }={}){
+  const id=check(await db().rpc('create_my_business', {
+    p_name:name,
+    p_ticket_name:ticketName||null,
+    p_ticket_tagline:ticketTagline||null,
+    p_phone:phone||null,
+    p_ticket_footer:ticketFooter||null,
+  }));
+  const biz=await resolveActiveBusiness();
+  if(biz?.id!==id){
+    const row=state.businesses.find(b=>b.id===id);
+    if(row) applyBusiness(row);
+  }
+  return id;
+}
+
+export async function updateMyBusinessBranding({
+  ticketName, ticketTagline, phone, ticketFooter, logoPath,
+}={}){
+  const bid=requireBusinessId();
+  const args={
+    p_business_id:bid,
+    p_ticket_name:ticketName,
+    p_ticket_tagline:ticketTagline??'',
+    p_phone:phone??'',
+    p_ticket_footer:ticketFooter??'',
+  };
+  if(logoPath!==undefined) args.p_logo_path=logoPath;
+  check(await db().rpc('update_my_business_branding', args));
+  state.ticketName=ticketName||'';
+  state.ticketTagline=ticketTagline||'';
+  state.phone=phone||'';
+  state.ticketFooter=ticketFooter||'';
+  if(logoPath!==undefined) state.logoPath=logoPath||'';
+  state.businessName=state.ticketName||state.businessName;
+  const i=state.businesses.findIndex(b=>b.id===bid);
+  if(i>=0){
+    state.businesses[i]={
+      ...state.businesses[i],
+      name:state.businessName,
+      ticketName:state.ticketName,
+      ticketTagline:state.ticketTagline,
+      phone:state.phone,
+      ticketFooter:state.ticketFooter,
+      logoPath:state.logoPath,
+    };
+  }
+}
+
+export async function uploadBusinessLogo(file){
+  const bid=requireBusinessId();
+  if(!file) throw new Error('Elige una imagen de logo.');
+  if(!/^image\//.test(file.type||'')) throw new Error('El logo debe ser una imagen (PNG, JPG o WebP).');
+  if(file.size>2*1024*1024) throw new Error('El logo debe pesar menos de 2 MB.');
+  const ext=(file.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
+  const path=`${bid}/logo.${ext==='jpeg'?'jpg':ext}`;
+  const { error }=await db().storage.from('business-logos').upload(path, file, {
+    upsert:true,
+    contentType:file.type||'image/png',
+    cacheControl:'3600',
+  });
+  if(error) throw new Error(error.message);
+  await updateMyBusinessBranding({
+    ticketName:state.ticketName||state.businessName,
+    ticketTagline:state.ticketTagline,
+    phone:state.phone,
+    ticketFooter:state.ticketFooter,
+    logoPath:path,
+  });
+  return path;
+}
+
+export async function clearBusinessLogo(){
+  await updateMyBusinessBranding({
+    ticketName:state.ticketName||state.businessName,
+    ticketTagline:state.ticketTagline,
+    phone:state.phone,
+    ticketFooter:state.ticketFooter,
+    logoPath:'',
+  });
 }
 
 // ── Row mapping (state shape ↔ DB) ────────────────────────────
@@ -444,6 +569,8 @@ async function cacheState(){
       saved:Object.fromEntries(Object.entries(saved).map(([t,m])=>[t,[...m]])),
       fileName:state.fileName, at:Date.now(),
       businessId:state.businessId, businessName:state.businessName, businessRole:state.businessRole,
+      ticketName:state.ticketName, ticketTagline:state.ticketTagline, phone:state.phone,
+      ticketFooter:state.ticketFooter, logoPath:state.logoPath,
     }, 'state'));
   }catch(e){ console.warn('[Smashiza] no se pudo guardar la copia local', e); }
 }
@@ -471,6 +598,11 @@ export async function loadFromCache(){
     state.businessId=c.businessId;
     state.businessName=c.businessName||'';
     state.businessRole=c.businessRole||'';
+    state.ticketName=c.ticketName||c.businessName||'';
+    state.ticketTagline=c.ticketTagline||'';
+    state.phone=c.phone||'';
+    state.ticketFooter=c.ticketFooter||'';
+    state.logoPath=c.logoPath||'';
   }
   saved=Object.fromEntries(Object.entries(c.saved||{}).map(([t,entries])=>[t,new Map(entries)]));
   offline=true;
