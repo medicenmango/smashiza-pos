@@ -332,10 +332,14 @@ export function initPayToggle(){
 }
 
 export function updateOrderNumBadge(){
-  document.getElementById('orden-num-badge').textContent=`#${String(getNextOrderNum(state.allOrders)).padStart(4,'0')}`;
+  const el=document.getElementById('orden-num-badge');
+  if(el) el.textContent=`#${String(getNextOrderNum(state.allOrders)).padStart(4,'0')}`;
 }
 
+let submittingOrder=false;
+
 export async function submitOrder(){
+  if(submittingOrder) return;
   if(!isReady()){ toast('⚠️ No hay datos cargados.','error'); return; }
   if(!state.cart.length){ toast('⚠️ Agrega al menos un producto.','error'); return; }
   if(state.payMethod==='Efectivo' && parsePesoOptional(document.getElementById('f-recibido')?.value)==null){
@@ -343,6 +347,11 @@ export async function submitOrder(){
     document.getElementById('f-recibido')?.focus();
     return;
   }
+
+  const btn=document.getElementById('btn-guardar-orden');
+  submittingOrder=true;
+  if(btn){ btn.disabled=true; btn.setAttribute('aria-busy','true'); }
+
   const now=new Date();
   const numOrden=getNextOrderNum(state.allOrders);
   const newRow={
@@ -364,23 +373,40 @@ export async function submitOrder(){
     const cash=cashBreakdown(newRow.Total, parsePesoOptional(document.getElementById('f-recibido')?.value));
     newRow.Recibido=cash.recibido; newRow.Cambio=cash.cambio;
   }
+
+  // Local first, then clear UI so a second click cannot reenviar el mismo ticket.
   state.allOrders.push(newRow);
   const invRes=syncOrderInventory(newRow);
+  clearForm();
+  updateOrderNumBadge();
+
   try{
     await saveNewOrder(newRow);
     toast(`✔ Orden #${String(newRow.Num_Orden).padStart(4,'0')} guardada`,'success');
-    notifyInventoryResult(invRes);
-    clearForm(); updateOrderNumBadge(); refreshDashboard(); renderInventory();
-  }catch(e){ toast('Error al guardar: '+e.message,'error',5000); }
+    try{ notifyInventoryResult(invRes); }catch(_){}
+    try{ refreshDashboard(); renderInventory(); }catch(_){}
+  }catch(e){
+    toast('Error al guardar: '+e.message,'error',5000);
+  }finally{
+    submittingOrder=false;
+    if(btn){ btn.disabled=false; btn.removeAttribute('aria-busy'); }
+  }
 }
 
 export function clearForm(){
-  document.getElementById('f-cliente').value='';
-  document.getElementById('f-direccion').value='';
-  document.getElementById('f-comentarios').value='';
-  document.getElementById('f-estado').value='Pendiente';
+  const cliente=document.getElementById('f-cliente');
+  const dir=document.getElementById('f-direccion');
+  const com=document.getElementById('f-comentarios');
+  const est=document.getElementById('f-estado');
+  if(cliente) cliente.value='';
+  if(dir) dir.value='';
+  if(com) com.value='';
+  if(est) est.value='Pendiente';
   const aj=document.getElementById('f-ajuste'); if(aj) aj.value='';
   const recInp=document.getElementById('f-recibido'); if(recInp) recInp.value='';
+  const sug=document.getElementById('cliente-suggestions');
+  if(sug){ sug.classList.add('hidden'); sug.innerHTML=''; }
+  if(cliente) cliente.setAttribute('aria-expanded','false');
   stampNewOrderWhen();
   state.cart=[]; state.ajuste=0; state.payMethod='Efectivo';
   document.querySelectorAll('.pay-opt').forEach((b,i)=>b.classList.toggle('active',i===0));
