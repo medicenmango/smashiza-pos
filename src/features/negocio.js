@@ -1,3 +1,4 @@
+import { isOwner } from '../auth/roles.js';
 import {
   applyChromeBranding, activeBranding, applyThemeColors, THEME_PRESETS, normalizeHex,
 } from '../domain/branding.js';
@@ -6,14 +7,13 @@ import { state } from '../state.js';
 import {
   updateMyBusinessBranding, uploadBusinessLogo, clearBusinessLogo, createMyBusiness,
   switchActiveBusiness, resolveActiveBusiness, syncStatus, updateMyBusinessTheme,
-  deleteMyBusiness,
+  deleteMyBusiness, listBusinessMembers, inviteBusinessCashier, removeBusinessMember,
+  currentUser,
 } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
 import { escHtml } from '../utils/format.js';
 
-function isOwner(){
-  return state.cloud && state.businessRole==='owner';
-}
+const ROLE_LABEL={ owner:'Dueño', cashier:'Cajero', kitchen:'Cocina' };
 
 function readThemeFromPickers(){
   return {
@@ -98,6 +98,50 @@ function fillForm(){
   }
   fillThemePickers(b);
   fillSwitcher();
+  const team=document.getElementById('biz-team-block');
+  if(team) team.classList.toggle('hidden', !isOwner());
+}
+
+async function refreshTeamList(){
+  const list=document.getElementById('biz-team-list');
+  if(!list || !isOwner() || !state.businessId) return;
+  list.innerHTML='<li class="setup-hint">Cargando…</li>';
+  try{
+    const members=await listBusinessMembers();
+    const me=await currentUser();
+    if(!members.length){
+      list.innerHTML='<li class="setup-hint">Sin miembros.</li>';
+      return;
+    }
+    list.innerHTML=members.map(m=>{
+      const label=ROLE_LABEL[m.role]||m.role;
+      const self=me?.id===m.userId;
+      const canRemove=m.role!=='owner' || (!self && members.filter(x=>x.role==='owner').length>1);
+      const removeBtn=canRemove && !self
+        ? `<button type="button" class="btn-secondary biz-team-remove" data-user-id="${escHtml(m.userId)}" data-email="${escHtml(m.email)}">Quitar</button>`
+        : '';
+      return `<li class="biz-team-row">
+        <span class="biz-team-email">${escHtml(m.email||m.userId)}${self?' (tú)':''}</span>
+        <span class="biz-team-role">${escHtml(label)}</span>
+        ${removeBtn}
+      </li>`;
+    }).join('');
+    list.querySelectorAll('.biz-team-remove').forEach(btn=>{
+      btn.addEventListener('click',async()=>{
+        const email=btn.dataset.email||'este usuario';
+        if(!confirm(`¿Quitar a ${email} de este negocio?`)) return;
+        try{
+          await removeBusinessMember({ userId:btn.dataset.userId });
+          toast('✔ Miembro quitado.','success');
+          await refreshTeamList();
+        }catch(err){
+          toast('Error: '+err.message,'error');
+        }
+      });
+    });
+  }catch(err){
+    list.innerHTML=`<li class="setup-hint">No se pudo cargar el equipo: ${escHtml(err.message)}</li>`;
+  }
 }
 
 export function renderNegocioTab(){
@@ -117,6 +161,7 @@ export function renderNegocioTab(){
   }
   fillForm();
   applyChromeBranding();
+  refreshTeamList();
   resolveActiveBusiness().then(()=>{
     if(meta){
       meta.innerHTML=`Negocio activo: <strong>${escHtml(state.businessName||'—')}</strong>
@@ -125,6 +170,7 @@ export function renderNegocioTab(){
     fillSwitcher();
     fillThemePickers();
     applyChromeBranding();
+    refreshTeamList();
   }).catch(()=>{});
 }
 
@@ -258,6 +304,26 @@ export function initNegocioTab(){
       location.reload();
     }catch(err){
       toast('Error: '+err.message,'error');
+    }
+  });
+
+  document.getElementById('biz-invite-form')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!isOwner()){ toast('Solo el dueño puede invitar.','error'); return; }
+    const input=document.getElementById('biz-invite-email');
+    const email=(input?.value||'').trim();
+    if(!email){ toast('Escribe el correo del cajero.','error'); return; }
+    const btn=document.getElementById('biz-invite-btn');
+    if(btn) btn.disabled=true;
+    try{
+      await inviteBusinessCashier({ email });
+      if(input) input.value='';
+      toast(`✔ ${email} invitado como cajero.`,'success');
+      await refreshTeamList();
+    }catch(err){
+      toast('Error: '+err.message,'error');
+    }finally{
+      if(btn) btn.disabled=false;
     }
   });
 

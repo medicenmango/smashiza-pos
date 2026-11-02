@@ -158,6 +158,18 @@
           </div>
           <button type="button" class="btn-primary" id="biz-save-theme" style="margin-top:.75rem">► GUARDAR COLORES</button>
         </div>
+        <div id="biz-team-block" class="hidden" style="max-width:420px;margin-top:1.75rem;padding-top:1rem;border-top:1px dashed var(--border)">
+          <h2 class="card-title"><span class="pixel-icon">👥</span> EQUIPO</h2>
+          <p class="setup-hint">Invita cajeros por correo. Primero deben <strong>crear cuenta</strong> en la pantalla de entrada; luego pegas su correo aquí. Quedan en el mismo negocio con rol cajero (órdenes sí; menú/costos/inventario/marca no).</p>
+          <form id="biz-invite-form" class="login-form">
+            <div class="form-group">
+              <label>CORREO DEL CAJERO</label>
+              <input type="email" id="biz-invite-email" class="pixel-input" autocomplete="off" placeholder="cajero@correo.com" required/>
+            </div>
+            <button type="submit" class="btn-primary" id="biz-invite-btn">► INVITAR CAJERO</button>
+          </form>
+          <ul id="biz-team-list" class="biz-team-list"></ul>
+        </div>
         <div id="biz-create-extra" class="hidden" style="margin-top:1.25rem">
           <button type="button" class="btn-secondary" id="biz-create-extra-btn">＋ Crear otro negocio</button>
         </div>

@@ -1,3 +1,4 @@
+import { isOwner } from '../auth/roles.js';
 import { findInvItem, invLevel, recipeLinesForProduct, pushMovement, lowInvItems, restockBuyItems, productsMissingRecipe, duplicateRecipePairs, writeProductRecipes } from '../domain/inventory.js';
 import { MENU, menuCatsInOrder, orderedMenuItems, getCatLabel } from '../domain/menu.js';
 import { renderDashInvAlerts } from './dashboard.js';
@@ -23,6 +24,7 @@ export function notifyInventoryResult(res){
 }
 
 export async function persistInv(){
+  if(!isOwner()){ toast('Solo el dueño puede editar inventario.','error'); return false; }
   if(!isReady()){ toast('⚠️ Carga tus datos primero.','error'); return false; }
   try{ await saveInventory(); renderInventory(); renderDashInvAlerts(); return true; }
   catch(e){ toast('Error al guardar: '+e.message,'error'); return false; }
@@ -30,6 +32,10 @@ export async function persistInv(){
 
 export function renderInventory(){
   const badge=document.getElementById('inv-badge');
+  if(!isOwner()){
+    if(badge) badge.classList.add('hidden');
+    return;
+  }
   const lows=lowInvItems();
   if(badge){
     if(!lows.length) badge.classList.add('hidden');
