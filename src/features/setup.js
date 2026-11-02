@@ -8,6 +8,8 @@ import { pickFile, handleFromDrop, loadExcel, loadDemoWorkbook, createNewExcel, 
 import { onSyncChange } from '../storage/events.js';
 import { onDataLoaded, useBackend } from '../storage/index.js';
 import { applyChromeBranding } from '../domain/branding.js';
+import { clearCatalogLocal } from '../domain/catalog.js';
+import { applyStarterCatalogForActiveBusiness, isSmashizaTenant } from '../domain/menu.js';
 import { currentUser, signIn, signUp, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog,
   isNetworkError, hasCache, loadFromCache, syncStatus, startAutoSync, resolveActiveBusiness, createMyBusiness,
 } from '../storage/supabase.js';
@@ -225,9 +227,14 @@ function initCloudLogin(){
   });
 
   document.getElementById('btn-start-empty').addEventListener('click',async()=>{
-    if(!confirm('¿Empezar con la base vacía? Se sube el menú que tiene este navegador. Después ya no podrás importar tu Excel desde aquí.')) return;
+    const msg=isSmashizaTenant()
+      ? '¿Empezar sin importar Excel? Se sube el menú default de La Smashiza.'
+      : '¿Empezar sin importar Excel? Se crea un menú vacío (Platillos / Bebidas / Extras), sin productos de Smashiza.';
+    if(!confirm(msg)) return;
     try{
       await loadFromSupabase();
+      applyStarterCatalogForActiveBusiness();
+      if(!isSmashizaTenant()) clearCatalogLocal();
       await uploadMenuCatalog();
       goToApp();
     }catch(e){ showSt('Error: '+e.message,'error'); }
