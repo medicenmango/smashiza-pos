@@ -11,7 +11,7 @@ import { onDataLoaded, useBackend } from '../storage/index.js';
 import { applyChromeBranding } from '../domain/branding.js';
 import { clearCatalogLocal } from '../domain/catalog.js';
 import { applyStarterCatalogForActiveBusiness, isSmashizaTenant } from '../domain/menu.js';
-import { currentUser, signIn, signUp, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog,
+import { currentUser, signIn, registerWithUsername, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog,
   isNetworkError, hasCache, loadFromCache, syncStatus, startAutoSync, resolveActiveBusiness, createMyBusiness,
 } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
@@ -148,7 +148,7 @@ function initCloudLogin(){
     form.classList.add('hidden');
     signupForm?.classList.remove('hidden');
     linkSignup.parentElement?.classList.add('hidden');
-    showSt('Crea tu cuenta. Después configurarás el negocio.','info');
+    showSt('Elige un usuario y contraseña. Sin correo ni confirmación.','info');
   });
   document.getElementById('btn-signup-cancel')?.addEventListener('click',()=>{
     showLogin();
@@ -162,11 +162,12 @@ function initCloudLogin(){
     btn.disabled=true;
     try{
       showSt('Entrando...','info');
-      await signIn(document.getElementById('login-email').value.trim(), document.getElementById('login-password').value);
+      const loginEl=document.getElementById('login-user')||document.getElementById('login-email');
+      await signIn(loginEl.value.trim(), document.getElementById('login-password').value);
       document.getElementById('login-password').value='';
       await enterCloud();
     }catch(e){
-      const msg=/invalid login credentials/i.test(e.message)?'Correo o contraseña incorrectos.':e.message;
+      const msg=/invalid login credentials/i.test(e.message)?'Usuario o contraseña incorrectos.':e.message;
       showSt('Error: '+msg,'error');
     }finally{ btn.disabled=false; }
   });
@@ -177,14 +178,22 @@ function initCloudLogin(){
     if(btn) btn.disabled=true;
     try{
       showSt('Creando cuenta...','info');
-      await signUp(
-        document.getElementById('signup-email').value.trim(),
+      const userEl=document.getElementById('signup-user')||document.getElementById('signup-email');
+      await registerWithUsername(
+        userEl.value.trim(),
         document.getElementById('signup-password').value,
       );
       document.getElementById('signup-password').value='';
       await enterCloud();
     }catch(err){
-      showSt('Error: '+err.message,'error');
+      let msg=err.message||String(err);
+      if(/signups not allowed/i.test(msg)){
+        msg='Altas por correo desactivadas. Usa usuario + contraseña (pega el SQL 011 si aún no).';
+      }
+      if(/check your email|confirm/i.test(msg)){
+        msg='No hace falta confirmar correo. Revisa el SQL 011 / vuelve a intentar.';
+      }
+      showSt('Error: '+msg,'error');
     }finally{
       if(btn) btn.disabled=false;
     }

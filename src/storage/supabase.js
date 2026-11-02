@@ -1,5 +1,6 @@
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../config.js';
 import { BUSINESS_STORAGE_KEY, SMASHIZA_BUSINESS_ID } from '../constants.js';
+import { toAuthEmail, normalizeUsername, displayLogin } from '../auth/username.js';
 import { normOrderNum } from '../domain/inventory.js';
 import { orderItems, setOrderItems } from '../domain/orders.js';
 import { state } from '../state.js';
@@ -53,7 +54,9 @@ export async function currentUser(){
   return data.session?.user||null;
 }
 
-export async function signIn(email, password){
+/** Login: usuario (→ email sintético) o correo real (Lynx). */
+export async function signIn(login, password){
+  const email=toAuthEmail(login);
   check(await db().auth.signInWithPassword({ email, password }));
 }
 
@@ -162,13 +165,20 @@ export function switchActiveBusiness(businessId){
   return true;
 }
 
-export async function signUp(email, password){
-  const { data, error }=await db().auth.signUp({ email, password });
-  if(error) throw new Error(error.message);
-  if(!data.session){
-    throw new Error('Cuenta creada. Revisa tu correo para confirmar antes de entrar.');
+/**
+ * Alta de dueño por usuario (sin Auth signup / sin confirmar correo).
+ * RPC crea el user en Auth; luego signIn abre sesión.
+ */
+export async function registerWithUsername(username, password){
+  const user=normalizeUsername(username);
+  if(!password || String(password).length<6){
+    throw new Error('La contraseña debe tener al menos 6 caracteres.');
   }
-  return data.user;
+  check(await db().rpc('register_with_username', {
+    p_username:user,
+    p_password:password,
+  }));
+  await signIn(user, password);
 }
 
 export async function createMyBusiness({ name, ticketName, ticketTagline, phone, ticketFooter }={}){
@@ -314,23 +324,34 @@ export async function deleteMyBusiness({ businessId, confirmName }={}){
 export async function listBusinessMembers(businessId){
   const bid=businessId||requireBusinessId();
   const rows=check(await db().rpc('list_business_members', { p_business_id:bid }))||[];
-  return rows.map(r=>({
-    userId:r.user_id,
-    email:r.email||'',
-    role:r.role||'',
-    createdAt:r.created_at,
-  }));
+  return rows.map(r=>{
+    const email=r.email||'';
+    const username=r.username||displayLogin(email)||'';
+    return {
+      userId:r.user_id,
+      email,
+      username,
+      display:username||email,
+      role:r.role||'',
+      createdAt:r.created_at,
+    };
+  });
 }
 
-/** Invita por correo como cajero (debe existir en Auth). Solo owner. */
-export async function inviteBusinessCashier({ businessId, email }={}){
+/** Crea cajero (usuario + contraseña) y lo une al negocio. Solo owner. */
+export async function createBusinessCashier({ businessId, username, password }={}){
   const bid=businessId||requireBusinessId();
   if(state.businessRole!=='owner'){
-    throw new Error('Solo el dueño puede invitar cajeros.');
+    throw new Error('Solo el dueño puede crear cajeros.');
   }
-  return check(await db().rpc('invite_business_cashier', {
+  const user=normalizeUsername(username);
+  if(!password || String(password).length<6){
+    throw new Error('La contraseña debe tener al menos 6 caracteres.');
+  }
+  return check(await db().rpc('create_business_cashier', {
     p_business_id:bid,
-    p_email:email,
+    p_username:user,
+    p_password:password,
   }));
 }
 
