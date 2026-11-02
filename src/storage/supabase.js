@@ -273,6 +273,26 @@ export async function clearBusinessLogo(){
   });
 }
 
+/** Borra el negocio activo (RPC). Tras éxito, deja preferencia en Smashiza u otro restante. */
+export async function deleteMyBusiness({ businessId, confirmName }={}){
+  const bid=businessId||requireBusinessId();
+  if(bid===SMASHIZA_BUSINESS_ID){
+    throw new Error('No se puede borrar La Smashiza.');
+  }
+  check(await db().rpc('delete_my_business', {
+    p_business_id:bid,
+    p_confirm_name:confirmName,
+  }));
+  state.businesses=(state.businesses||[]).filter(b=>b.id!==bid);
+  const next=
+    state.businesses.find(b=>b.id===SMASHIZA_BUSINESS_ID)
+    || state.businesses[0]
+    || null;
+  if(next) applyBusiness(next);
+  else clearBusinessState();
+  return next;
+}
+
 // ── Row mapping (state shape ↔ DB) ────────────────────────────
 function orderToDb(o){
   return withBiz({

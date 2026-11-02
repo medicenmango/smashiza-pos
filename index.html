@@ -161,6 +161,16 @@
         <div id="biz-create-extra" class="hidden" style="margin-top:1.25rem">
           <button type="button" class="btn-secondary" id="biz-create-extra-btn">＋ Crear otro negocio</button>
         </div>
+        <div id="biz-delete-block" class="hidden" style="max-width:420px;margin-top:1.75rem;padding-top:1rem;border-top:1px dashed var(--border)">
+          <h2 class="card-title" style="color:var(--red)"><span class="pixel-icon">⚠️</span> ZONA PELIGRO</h2>
+          <p class="setup-hint">Borra este negocio y todos sus datos (órdenes, menú, inventario). <strong>La Smashiza no se puede borrar.</strong></p>
+          <p id="biz-delete-hint" class="setup-hint"></p>
+          <div class="form-group">
+            <label>ESCRIBE EL NOMBRE PARA CONFIRMAR</label>
+            <input type="text" id="biz-delete-confirm" class="pixel-input" autocomplete="off" placeholder="Nombre exacto del negocio"/>
+          </div>
+          <button type="button" class="btn-primary" id="biz-delete-btn" style="background:var(--red-dark);box-shadow:0 4px 0 #5a0a0a">🗑 BORRAR NEGOCIO</button>
+        </div>
       </div>
     </div>
   </div>

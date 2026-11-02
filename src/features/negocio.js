@@ -1,10 +1,12 @@
 import {
   applyChromeBranding, activeBranding, applyThemeColors, THEME_PRESETS, normalizeHex,
 } from '../domain/branding.js';
+import { SMASHIZA_BUSINESS_ID } from '../constants.js';
 import { state } from '../state.js';
 import {
   updateMyBusinessBranding, uploadBusinessLogo, clearBusinessLogo, createMyBusiness,
   switchActiveBusiness, resolveActiveBusiness, syncStatus, updateMyBusinessTheme,
+  deleteMyBusiness,
 } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
 import { escHtml } from '../utils/format.js';
@@ -82,6 +84,18 @@ function fillForm(){
   }
   const createWrap=document.getElementById('biz-create-extra');
   if(createWrap) createWrap.classList.toggle('hidden', !isOwner());
+  const delBlock=document.getElementById('biz-delete-block');
+  const canDelete=isOwner() && state.businessId && state.businessId!==SMASHIZA_BUSINESS_ID;
+  if(delBlock){
+    delBlock.classList.toggle('hidden', !canDelete);
+    const hint=document.getElementById('biz-delete-hint');
+    const expected=state.ticketName||state.businessName||'';
+    if(hint) hint.innerHTML=canDelete
+      ? `Para confirmar, escribe exactamente: <strong>${escHtml(expected)}</strong>`
+      : '';
+    const conf=document.getElementById('biz-delete-confirm');
+    if(conf) conf.value='';
+  }
   fillThemePickers(b);
   fillSwitcher();
 }
@@ -244,6 +258,43 @@ export function initNegocioTab(){
       location.reload();
     }catch(err){
       toast('Error: '+err.message,'error');
+    }
+  });
+
+  document.getElementById('biz-delete-btn')?.addEventListener('click',async()=>{
+    if(!isOwner()) return;
+    if(!state.businessId || state.businessId===SMASHIZA_BUSINESS_ID){
+      toast('No se puede borrar La Smashiza.','error');
+      return;
+    }
+    const expected=(state.ticketName||state.businessName||'').trim();
+    const typed=(document.getElementById('biz-delete-confirm')?.value||'').trim();
+    if(!typed){
+      toast('Escribe el nombre del negocio para confirmar.','error');
+      document.getElementById('biz-delete-confirm')?.focus();
+      return;
+    }
+    if(typed.toLowerCase()!==expected.toLowerCase()){
+      toast('El nombre no coincide. Escríbelo exactamente.','error');
+      return;
+    }
+    const { pending }=syncStatus();
+    const warn=pending
+      ? `Hay ${pending} cambio(s) sin subir. Se perderán.\n\n¿Borrar definitivamente “${expected}” y todos sus datos?`
+      : `¿Borrar definitivamente “${expected}” y todos sus datos (órdenes, menú, inventario)? Esta acción no se puede deshacer.`;
+    if(!confirm(warn)) return;
+
+    const btn=document.getElementById('biz-delete-btn');
+    if(btn) btn.disabled=true;
+    try{
+      const next=await deleteMyBusiness({ businessId:state.businessId, confirmName:typed });
+      toast(next
+        ? `✔ Negocio borrado. Entrando a ${next.ticketName||next.name}…`
+        : '✔ Negocio borrado.','success');
+      location.reload();
+    }catch(err){
+      toast('Error: '+err.message,'error');
+      if(btn) btn.disabled=false;
     }
   });
 }
