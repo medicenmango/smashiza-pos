@@ -607,7 +607,8 @@
   <div id="tab-inventario" class="tab-content hidden">
     <div class="inv-kpis" id="inv-kpis"></div>
     <p class="table-hint inv-tab-hint">
-      Se descuenta al marcar <strong>Entregada</strong>. Extra = otro producto con su receta. Órdenes viejas no se tocan.
+      Stock solo por <strong>entrada / merma / conteo / venta</strong> (al marcar <strong>Entregada</strong>, una vez por orden).
+      No edites el stock a mano. Un nombre = un ingrediente.
     </p>
     <div class="card inv-restock-card">
       <h3 class="card-title" style="margin:0 0 .4rem"><span class="pixel-icon">🛒</span> POR COMPRAR <span class="card-title-hint">— debajo del stock ideal</span></h3>
@@ -623,27 +624,27 @@
     <div class="inv-layout inv-layout-stack">
       <div class="card inv-stock-card">
         <div class="inv-card-head">
-          <h3 class="card-title" style="margin:0"><span class="pixel-icon">📦</span> STOCK</h3>
+          <h3 class="card-title" style="margin:0"><span class="pixel-icon">📦</span> INGREDIENTES</h3>
           <div class="dash-btn-row">
             <button class="btn-secondary btn-inline" id="btn-inv-template">⬇ PLANTILLA</button>
             <button class="btn-secondary btn-inline" id="btn-inv-reload">⟳ RECARGAR</button>
           </div>
         </div>
         <div class="inv-add-row">
-          <input type="text" id="inv-search" class="pixel-input" placeholder="🔍 Buscar ingrediente..." style="flex:1.4"/>
-          <input type="text" id="inv-new-name" class="pixel-input" placeholder="Ingrediente"/>
+          <input type="text" id="inv-search" class="pixel-input" placeholder="🔍 Buscar..." style="flex:1.4"/>
+          <input type="text" id="inv-new-name" class="pixel-input" placeholder="Nuevo ingrediente"/>
           <select id="inv-new-unit" class="pixel-input">
             <option value="g">g</option><option value="ml">ml</option><option value="pza">pza</option>
           </select>
-          <input type="number" id="inv-new-stock" class="pixel-input" placeholder="Stock" step="any"/>
-          <input type="number" id="inv-new-min" class="pixel-input" placeholder="Mínimo" step="any"/>
+          <input type="number" id="inv-new-stock" class="pixel-input" placeholder="Stock inicial" step="any" min="0"/>
+          <input type="number" id="inv-new-min" class="pixel-input" placeholder="Mín" step="any"/>
           <input type="number" id="inv-new-ideal" class="pixel-input" placeholder="Ideal" step="any"/>
           <button class="btn-primary" id="btn-inv-add" style="width:auto;padding:.45rem .8rem;margin:0">＋</button>
         </div>
         <div class="table-wrap inv-stock-scroll">
           <table class="pixel-table inv-stock-table">
             <thead><tr>
-              <th></th><th>INGREDIENTE</th><th>UNIDAD</th><th>STOCK</th><th>MÍN</th><th>IDEAL</th><th></th>
+              <th></th><th>INGREDIENTE</th><th>UNIDAD</th><th>STOCK</th><th>MÍN</th><th>IDEAL</th><th>ACCIONES</th>
             </tr></thead>
             <tbody id="inv-tbody"><tr><td colspan="7" class="empty-list">Sin ingredientes aún</td></tr></tbody>
           </table>
@@ -654,7 +655,7 @@
       <div class="inv-card-head">
         <h3 class="card-title" style="margin:0"><span class="pixel-icon">📋</span> RECETA POR PRODUCTO</h3>
       </div>
-      <p class="table-hint" style="margin:.35rem 0 .5rem">Abre un producto, arma la receta y pulsa <strong>GUARDAR RECETA</strong>. Los movimientos siguen en el Excel, ya no aquí.</p>
+      <p class="table-hint" style="margin:.35rem 0 .5rem">Receta plana: producto → ingredientes + cantidad. <strong>GUARDAR RECETA</strong> por producto.</p>
       <div class="rec-chips" id="rec-cat-chips"></div>
       <div class="inv-add-row rec-toolbar">
         <input type="text" id="rec-search" class="pixel-input" placeholder="🔍 Buscar producto..." style="flex:1.6"/>
@@ -665,6 +666,20 @@
       </div>
       <p class="table-hint inv-missing-box" id="inv-missing-recipes"></p>
       <div id="rec-board" class="rec-board"></div>
+    </div>
+    <div class="card inv-moves-card" style="margin-top:1rem">
+      <div class="inv-card-head">
+        <h3 class="card-title" style="margin:0"><span class="pixel-icon">📜</span> MOVIMIENTOS RECIENTES</h3>
+        <input type="text" id="inv-moves-filter" class="pixel-input" placeholder="Filtrar ingrediente..." style="max-width:220px"/>
+      </div>
+      <div class="table-wrap inv-stock-scroll" style="max-height:260px">
+        <table class="pixel-table inv-stock-table">
+          <thead><tr>
+            <th>FECHA</th><th>TIPO</th><th>INGREDIENTE</th><th>CANT</th><th>ORDEN</th><th>NOTA</th>
+          </tr></thead>
+          <tbody id="inv-moves-tbody"><tr><td colspan="6" class="empty-list">Sin movimientos</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -788,13 +803,17 @@
     <p class="setup-hint" id="inv-move-ing">—</p>
     <input type="hidden" id="inv-move-name"/>
     <input type="hidden" id="inv-move-kind"/>
-    <div class="form-group" style="margin:.75rem 0">
+    <div class="form-group" style="margin:.75rem 0" id="inv-move-qty-wrap">
       <label id="inv-move-label">CANTIDAD</label>
-      <input type="number" id="inv-move-qty" class="pixel-input" step="any"/>
+      <input type="number" id="inv-move-qty" class="pixel-input" step="any" min="0"/>
+    </div>
+    <div class="form-group hidden" id="inv-move-count-wrap" style="margin:.75rem 0">
+      <label>STOCK CONTADO (físico)</label>
+      <input type="number" id="inv-move-counted" class="pixel-input" step="any" min="0"/>
     </div>
     <div class="form-group">
       <label>NOTA (opcional)</label>
-      <input type="text" id="inv-move-nota" class="pixel-input" placeholder="Compra, merma, conteo..."/>
+      <input type="text" id="inv-move-nota" class="pixel-input" placeholder="Opcional"/>
     </div>
     <div class="modal-actions" style="margin-top:1rem">
       <button class="btn-primary" id="btn-inv-move-save" style="width:auto;padding:.6rem 1.5rem">► GUARDAR</button>

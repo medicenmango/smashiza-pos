@@ -5,7 +5,7 @@ import { toast } from '../ui/toast.js';
 import { fmtDate, fmtTime, normInvName } from '../utils/format.js';
 
 export function snapshotOrderInv(o){
-  return { Num_Orden:o['Num_Orden'], Estado:o['Estado'], Productos:o['Productos'], Cantidades:o['Cantidades'] };
+  return { Num_Orden:o['Num_Orden'], Estado:o['Estado'], Productos:o['Productos'], Cantidades:o['Cantidades'], _cid:o._cid };
 }
 
 export function findInvItem(name){
@@ -30,20 +30,44 @@ export function normOrderNum(n){
   return Number.isFinite(num) ? String(num) : s;
 }
 
-export function movementsNetByIng(numOrden){
-  const n=normOrderNum(numOrden);
+export function ensureOrderCid(order){
+  if(!order) return '';
+  if(!order._cid) order._cid=crypto.randomUUID();
+  return order._cid;
+}
+
+function movementOrderCid(m){
+  return String(m._orderCid||m['Order_Client_Id']||'').trim();
+}
+
+/** Neto venta/reversion anclado al client_id estable de la orden. */
+export function movementsNetByOrderCid(orderCid, fallbackOrderNum){
+  const cid=String(orderCid||'').trim();
+  const n=normOrderNum(fallbackOrderNum);
   const net={};
-  if(!n) return net;
   state.movements.forEach(m=>{
-    if(normOrderNum(m['Num_Orden'])!==n) return;
     const t=String(m['Tipo']||'').toLowerCase();
     if(t!=='venta' && t!=='reversion') return;
+    const mCid=movementOrderCid(m);
+    if(cid && mCid){
+      if(mCid!==cid) return;
+    } else if(cid && !mCid){
+      // legado: movimiento solo con Num_Orden
+      if(!n || normOrderNum(m['Num_Orden'])!==n) return;
+    } else if(!cid){
+      if(!n || normOrderNum(m['Num_Orden'])!==n) return;
+    } else return;
     const key=normInvName(m['Ingrediente']);
     if(!key) return;
     if(!net[key]) net[key]={ name:m['Ingrediente'], qty:0, unidad:m['Unidad']||'' };
     net[key].qty += parseFloat(m['Cantidad'])||0;
   });
   return net;
+}
+
+/** @deprecated prefer movementsNetByOrderCid */
+export function movementsNetByIng(numOrden){
+  return movementsNetByOrderCid('', numOrden);
 }
 
 export function recipeLinesForProduct(productName){
@@ -73,16 +97,24 @@ export function usageFromOrder(order){
   return { missing, lines:Object.values(byIng) };
 }
 
-export function pushMovement(tipo, ing, qty, unidad, numOrden, nota){
+/**
+ * Crea movimiento y ajusta stock local.
+ * Tipos: entrada | merma | conteo | venta | reversion (+ legado compra/ajuste).
+ * En nube el trigger DB también aplica el delta al stock.
+ */
+export function pushMovement(tipo, ing, qty, unidad, numOrden, nota, orderCid){
   const now=new Date();
-  state.movements.push({
+  const row={
     Fecha:fmtDate(now), Hora:fmtTime(now), Tipo:tipo,
     Ingrediente:ing, Cantidad:qty, Unidad:unidad||'',
-    Num_Orden:numOrden??'', Nota:nota||''
-  });
+    Num_Orden:numOrden??'', Nota:nota||'',
+  };
+  if(orderCid) row._orderCid=orderCid;
+  state.movements.push(row);
+  return row;
 }
 
-export function applyUsageLines(lines, sign, tipo, numOrden, nota, result){
+export function applyUsageLines(lines, sign, tipo, numOrden, nota, result, orderCid){
   lines.forEach(line=>{
     const item=findInvItem(line.name);
     if(!item){
@@ -90,18 +122,56 @@ export function applyUsageLines(lines, sign, tipo, numOrden, nota, result){
       return;
     }
     const before=invLevel(item);
-    const next=(parseFloat(item['Stock'])||0) + sign*line.qty;
+    const delta=sign*line.qty;
+    const next=(parseFloat(item['Stock'])||0) + delta;
     item['Stock']=next;
-    pushMovement(tipo, item['Nombre'], sign*line.qty, item['Unidad']||line.unidad, numOrden, nota);
+    pushMovement(tipo, item['Nombre'], delta, item['Unidad']||line.unidad, numOrden, nota, orderCid);
     const after=invLevel(item);
     const rank={ok:0,yellow:1,red:2};
     if(rank[after]>rank[before]) result.crossed.push({name:item['Nombre'], from:before, to:after, stock:next, unidad:item['Unidad']});
   });
 }
 
+/** Entrada / merma / conteo (stock solo vía movimientos). */
+export function applyStockMovement({ tipo, name, qty, counted, nota }={}){
+  const item=findInvItem(name);
+  if(!item) throw new Error('Ingrediente no encontrado.');
+  const t=String(tipo||'').toLowerCase();
+  let delta=0;
+  let tip=t;
+  let note=nota||'';
+  if(t==='entrada' || t==='compra'){
+    const q=parseFloat(qty);
+    if(!(q>0)) throw new Error('Cantidad inválida.');
+    delta=q;
+    tip='entrada';
+    note=note||'Entrada de stock';
+  } else if(t==='merma'){
+    const q=parseFloat(qty);
+    if(!(q>0)) throw new Error('Cantidad inválida.');
+    delta=-q;
+    tip='merma';
+    note=note||'Merma';
+  } else if(t==='conteo'){
+    const n=parseFloat(counted);
+    if(isNaN(n) || n<0) throw new Error('Conteo inválido.');
+    const prev=parseFloat(item['Stock'])||0;
+    delta=n-prev;
+    if(Math.abs(delta)<1e-9) throw new Error('El conteo es igual al stock actual.');
+    tip='conteo';
+    note=note||`Conteo físico → ${n}`;
+  } else {
+    throw new Error('Tipo de movimiento no soportado.');
+  }
+  item['Stock']=(parseFloat(item['Stock'])||0)+delta;
+  pushMovement(tip, item['Nombre'], delta, item['Unidad'], '', note);
+  return { item, delta, tip };
+}
+
 export function syncOrderInventory(order, opts={}){
   const result={ missing:[], missingIng:[], crossed:[], changed:false };
   if(!order) return result;
+  const cid=ensureOrderCid(order);
   const num=order['Num_Orden'];
   const should=!opts.deleted && String(order['Estado'])==='Entregada';
   const wanted={};
@@ -112,7 +182,7 @@ export function syncOrderInventory(order, opts={}){
       wanted[normInvName(l.name)]={ name:l.name, qty:l.qty, unidad:l.unidad };
     });
   }
-  const actual=movementsNetByIng(num);
+  const actual=movementsNetByOrderCid(cid, num);
   const keys=new Set([...Object.keys(wanted), ...Object.keys(actual)]);
   keys.forEach(k=>{
     const want=wanted[k]?.qty||0;
@@ -122,13 +192,23 @@ export function syncOrderInventory(order, opts={}){
     const name=wanted[k]?.name||actual[k]?.name;
     const unidad=wanted[k]?.unidad||actual[k]?.unidad||'';
     if(delta>0){
-      applyUsageLines([{ name, qty:delta, unidad }], -1, 'venta', num, 'Entrega', result);
+      applyUsageLines([{ name, qty:delta, unidad }], -1, 'venta', num, 'Entrega', result, cid);
     } else {
       applyUsageLines([{ name, qty:-delta, unidad }], +1, 'reversion', num,
-        opts.deleted?'Orden eliminada':'Ajuste inventario', result);
+        opts.deleted?'Orden eliminada':'Ajuste inventario', result, cid);
     }
     result.changed=true;
   });
+  // Sellar movimientos legado de esta orden con el cid estable
+  if(cid){
+    const n=normOrderNum(num);
+    state.movements.forEach(m=>{
+      const t=String(m['Tipo']||'').toLowerCase();
+      if(t!=='venta' && t!=='reversion') return;
+      if(movementOrderCid(m)) return;
+      if(n && normOrderNum(m['Num_Orden'])===n) m._orderCid=cid;
+    });
+  }
   return result;
 }
 
@@ -163,8 +243,12 @@ export function duplicateRecipePairs(){
 export function writeProductRecipes(productName, lines){
   const pk=normInvName(productName);
   state.recipes=state.recipes.filter(r=>normInvName(r['Producto'])!==pk);
+  const seen=new Set();
   lines.forEach(l=>{
     if(!l.name || !(parseFloat(l.qty)>0)) return;
+    const ik=normInvName(l.name);
+    if(seen.has(ik)) return;
+    seen.add(ik);
     const item=findInvItem(l.name);
     state.recipes.push({
       Producto:productName,
@@ -189,7 +273,7 @@ export function runInventorySelfTest(){
     state.recipes=[{ Producto:'La Master', Ingrediente:'Pan', Cantidad:1, Unidad:'pza' }];
     state.movements=[];
     state.allOrders=[];
-    const order={ Num_Orden:99, Estado:'Entregada', Productos:'La Master', Cantidades:'5x' };
+    const order={ Num_Orden:99, Estado:'Entregada', Productos:'La Master', Cantidades:'5x', _cid:'test-cid-1' };
     syncOrderInventory(order);
     expect('after 1st deliver', state.inventory[0].Stock, 5);
     syncOrderInventory(order);
@@ -200,16 +284,18 @@ export function runInventorySelfTest(){
     order.Estado='Entregada';
     syncOrderInventory(order);
     expect('after deliver again', state.inventory[0].Stock, 5);
-    const leaked=10-5-2;
+    // Renumeración: mismo cid, otro Num_Orden → no doble descuento
+    order.Num_Orden=385;
+    syncOrderInventory(order);
+    expect('after renumber same cid', state.inventory[0].Stock, 5);
     state.inventory[0].Stock=3;
     state.movements=[
-      { Tipo:'venta', Ingrediente:'Pan', Cantidad:-5, Num_Orden:99, Unidad:'pza' },
-      { Tipo:'venta', Ingrediente:'Pan', Cantidad:-2, Num_Orden:99, Unidad:'pza' }
+      { Tipo:'venta', Ingrediente:'Pan', Cantidad:-5, Num_Orden:99, Unidad:'pza', _orderCid:'test-cid-1' },
+      { Tipo:'venta', Ingrediente:'Pan', Cantidad:-2, Num_Orden:99, Unidad:'pza', _orderCid:'test-cid-1' }
     ];
     order.Estado='Entregada';
     syncOrderInventory(order);
-    expect('heal 10-5-2=3 back to 5', state.inventory[0].Stock, 5);
-    if(leaked!==3) fail.push('fixture math');
+    expect('heal back to 5', state.inventory[0].Stock, 5);
   } finally {
     state.inventory=snap.inventory; state.recipes=snap.recipes;
     state.movements=snap.movements; state.allOrders=snap.allOrders;
