@@ -21,7 +21,7 @@ export const INV_HEADERS=['Nombre','Unidad','Stock','Minimo','Ideal','Proveedor'
 
 export const REC_HEADERS=['Producto','Ingrediente','Cantidad','Unidad'];
 
-export const MOV_HEADERS=['Fecha','Hora','Tipo','Ingrediente','Cantidad','Unidad','Num_Orden','Nota'];
+export const MOV_HEADERS=['Fecha','Hora','Tipo','Ingrediente','Cantidad','Unidad','Num_Orden','Nota','Order_Client_Id'];
 
 export const MENU_SHEET='Menu', CAT_SHEET='Categorias', COST_SHEET='Costos', CATALOG_SHEET='Catalogo', PRICE_SHEET='PrecioHistorial';
 
@@ -193,7 +193,11 @@ export function writeInvSheets(){
   ensureInvSheets(state.workbook);
   state.workbook.Sheets[INV_SHEET]=rowsToSheet(INV_HEADERS, state.inventory);
   state.workbook.Sheets[REC_SHEET]=rowsToSheet(REC_HEADERS, state.recipes);
-  state.workbook.Sheets[MOV_SHEET]=rowsToSheet(MOV_HEADERS, state.movements);
+  const movRows=state.movements.map(m=>({
+    ...m,
+    Order_Client_Id:m._orderCid||m['Order_Client_Id']||'',
+  }));
+  state.workbook.Sheets[MOV_SHEET]=rowsToSheet(MOV_HEADERS, movRows);
 }
 
 export function writeMenuCatalogSheets(){
@@ -282,7 +286,10 @@ export async function applyWorkbook(wb, opts={}){
   state.allOrders=parseOrders(wb);
   state.inventory=parseNamedSheet(wb, INV_SHEET, INV_HEADERS);
   state.recipes=parseNamedSheet(wb, REC_SHEET, REC_HEADERS);
-  state.movements=parseNamedSheet(wb, MOV_SHEET, MOV_HEADERS);
+  state.movements=parseNamedSheet(wb, MOV_SHEET, MOV_HEADERS).map(m=>{
+    if(m.Order_Client_Id) m._orderCid=String(m.Order_Client_Id);
+    return m;
+  });
   state._hydrating=true;
   const migrated=hydrateMenuCatalogFromWorkbook(wb);
   state._hydrating=false;

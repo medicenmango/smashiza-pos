@@ -474,6 +474,7 @@ function orderFromDb(r, items){
 
 function movementToDb(m){
   const n=parseInt(m['Num_Orden'],10);
+  const ocid=m._orderCid||m['Order_Client_Id']||null;
   return withBiz({
     fecha:toYmd(m['Fecha'])||fmtDate(),
     hora:toHms(m['Hora'])||fmtTime(),
@@ -482,6 +483,7 @@ function movementToDb(m){
     qty:num(m['Cantidad']),
     unit:str(m['Unidad']),
     order_num:Number.isFinite(n)?n:null,
+    order_client_id:ocid||null,
     nota:str(m['Nota']),
   });
 }
@@ -630,12 +632,27 @@ function enqueue(op){
 
 function renumber(oldNum, newNum, cid){
   const o=state.allOrders.find(x=>cid ? x._cid===cid : normOrderNum(x['Num_Orden'])===String(oldNum));
-  if(o) o['Num_Orden']=newNum;
-  state.movements.forEach(m=>{ if(!m._db && normOrderNum(m['Num_Orden'])===String(oldNum)) m['Num_Orden']=newNum; });
+  if(o){
+    o['Num_Orden']=newNum;
+    if(cid && !o._cid) o._cid=cid;
+  }
+  state.movements.forEach(m=>{
+    const sameCid=cid && String(m._orderCid||'')===String(cid);
+    const sameNum=!m._db && normOrderNum(m['Num_Orden'])===String(oldNum);
+    if(sameCid || sameNum){
+      m['Num_Orden']=newNum;
+      if(cid) m._orderCid=cid;
+    }
+  });
   outbox.forEach(p=>{
     if(p.k==='order' && p.order.num===oldNum) p.order.num=newNum;
     if(p.k==='del' && p.num===oldNum) p.num=newNum;
-    if(p.k==='mov') p.rows.forEach(r=>{ if(r.order_num===oldNum) r.order_num=newNum; });
+    if(p.k==='mov') p.rows.forEach(r=>{
+      if(r.order_num===oldNum || (cid && r.order_client_id===cid)){
+        r.order_num=newNum;
+        if(cid) r.order_client_id=cid;
+      }
+    });
   });
   toast(`Otro dispositivo usó el #${oldNum}: esta orden quedó como #${newNum}`,'info',7000);
   emitDataLoaded();
@@ -877,6 +894,7 @@ export async function loadFromSupabase(){
   state.movements=movements.map(r=>({
     Fecha:r.fecha, Hora:r.hora, Tipo:r.tipo, Ingrediente:r.ingredient, Cantidad:Number(r.qty)||0,
     Unidad:r.unit, Num_Orden:r.order_num??'', Nota:r.nota, _db:true, _cid:r.client_id||`db-${r.id}`,
+    _orderCid:r.order_client_id||'',
   }));
 
   state._hydrating=true;

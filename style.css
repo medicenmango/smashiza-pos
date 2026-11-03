@@ -118,6 +118,9 @@ html,body{height:100%;background:var(--bg-dark);color:var(--beige);font-family:v
 .caja-diff-pos{color:var(--green);}
 .caja-diff-neg{color:var(--red-glow,var(--red));}
 .caja-diff-zero{color:var(--beige);}
+.inv-stock-ro{font-family:var(--mono);font-weight:700;min-width:64px;}
+.inv-stock-btns{display:flex;flex-wrap:wrap;gap:.25rem;}
+.inv-stock-btns .btn-inline{width:auto;margin:0;font-size:6px;padding:.3rem .4rem;}
 .file-label{font-family:var(--pixel);font-size:7px;color:var(--blue-light);white-space:nowrap;}
 .file-name{font-family:var(--mono);font-size:11px;color:var(--green);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}
 .file-write-mode{font-family:var(--pixel);font-size:6px;letter-spacing:.5px;white-space:nowrap;}

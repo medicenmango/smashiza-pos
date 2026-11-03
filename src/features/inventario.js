@@ -1,5 +1,8 @@
 import { isOwner } from '../auth/roles.js';
-import { findInvItem, invLevel, recipeLinesForProduct, pushMovement, lowInvItems, restockBuyItems, productsMissingRecipe, duplicateRecipePairs, writeProductRecipes } from '../domain/inventory.js';
+import {
+  findInvItem, invLevel, recipeLinesForProduct, applyStockMovement, lowInvItems, restockBuyItems,
+  productsMissingRecipe, duplicateRecipePairs, writeProductRecipes,
+} from '../domain/inventory.js';
 import { MENU, menuCatsInOrder, orderedMenuItems, getCatLabel } from '../domain/menu.js';
 import { renderDashInvAlerts } from './dashboard.js';
 import { reloadData } from './ordenes.js';
@@ -7,6 +10,11 @@ import { state } from '../state.js';
 import { isReady, saveInventory, downloadInvTemplate } from '../storage/index.js';
 import { toast } from '../ui/toast.js';
 import { escHtml, fmtInvQty, normInvName } from '../utils/format.js';
+
+const MOVE_LABEL={
+  entrada:'Entrada', compra:'Entrada', merma:'Merma', conteo:'Conteo',
+  venta:'Venta', reversion:'Reversión', ajuste:'Ajuste',
+};
 
 export function notifyInventoryResult(res){
   if(!res) return;
@@ -89,12 +97,13 @@ export function renderInventory(){
           <td class="inv-dot">${dot}</td>
           <td>${escHtml(item['Nombre'])}</td>
           <td>${escHtml(item['Unidad']||'')}</td>
-          <td><input type="number" class="pixel-input inv-edit-stock" data-idx="${idx}" value="${fmtInvQty(item['Stock'])}" step="any" style="width:78px"/></td>
+          <td class="inv-stock-ro">${fmtInvQty(item['Stock'])}</td>
           <td><input type="number" class="pixel-input inv-edit-min" data-idx="${idx}" value="${item['Minimo']??''}" step="any" style="width:64px"/></td>
           <td><input type="number" class="pixel-input inv-edit-ideal" data-idx="${idx}" value="${item['Ideal']??''}" step="any" style="width:64px"/></td>
           <td class="inv-stock-btns">
-            <button class="btn-secondary btn-inline inv-btn-in" data-idx="${idx}" title="Entrada">+</button>
-            <button class="btn-secondary btn-inline inv-btn-waste" data-idx="${idx}" title="Merma">−</button>
+            <button class="btn-secondary btn-inline inv-btn-in" data-idx="${idx}" title="Entrada">＋ Ent</button>
+            <button class="btn-secondary btn-inline inv-btn-waste" data-idx="${idx}" title="Merma">Merma</button>
+            <button class="btn-secondary btn-inline inv-btn-count" data-idx="${idx}" title="Conteo físico">Conteo</button>
             <button class="btn-secondary btn-inline inv-btn-del" data-idx="${idx}" title="Quitar">✕</button>
           </td>
         </tr>`;
@@ -106,7 +115,38 @@ export function renderInventory(){
     const list=productsMissingRecipe();
     miss.textContent=list.length?('Sin receta aún: '+list.map(m=>m.name).join(', ')):'Todas las recetas del menú tienen al menos un ingrediente.';
   }
+  renderMovementsList();
   renderRecipeBoard();
+}
+
+export function renderMovementsList(){
+  const tbody=document.getElementById('inv-moves-tbody');
+  if(!tbody) return;
+  const q=(document.getElementById('inv-moves-filter')?.value||'').trim().toLowerCase();
+  const rows=[...state.movements].reverse().filter(m=>{
+    if(!q) return true;
+    return String(m['Ingrediente']||'').toLowerCase().includes(q)
+      || String(m['Tipo']||'').toLowerCase().includes(q)
+      || String(m['Nota']||'').toLowerCase().includes(q);
+  }).slice(0,80);
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="6" class="empty-list">Sin movimientos</td></tr>';
+    return;
+  }
+  tbody.innerHTML=rows.map(m=>{
+    const tip=String(m['Tipo']||'').toLowerCase();
+    const label=MOVE_LABEL[tip]||m['Tipo']||'';
+    const qty=fmtInvQty(m['Cantidad']);
+    const ord=m['Num_Orden']?`#${String(m['Num_Orden']).padStart(4,'0')}`:'—';
+    return `<tr>
+      <td style="font-size:11px">${escHtml(String(m['Fecha']||''))} ${escHtml(String(m['Hora']||'').slice(0,5))}</td>
+      <td>${escHtml(label)}</td>
+      <td>${escHtml(m['Ingrediente']||'')}</td>
+      <td>${qty} ${escHtml(m['Unidad']||'')}</td>
+      <td>${escHtml(ord)}</td>
+      <td style="font-size:11px;color:var(--beige-dark)">${escHtml(m['Nota']||'')}</td>
+    </tr>`;
+  }).join('');
 }
 
 export function recipeDraftKey(name){ return normInvName(name); }
@@ -256,19 +296,46 @@ export async function saveRecipeProduct(productName){
   if(ok) toast('✔ Receta de '+productName+' guardada','success');
 }
 
+function openMoveModal(item, kind){
+  document.getElementById('inv-move-name').value=item['Nombre'];
+  document.getElementById('inv-move-kind').value=kind;
+  const titles={ entrada:'＋ ENTRADA', merma:'MERMA', conteo:'CONTEO FÍSICO' };
+  document.getElementById('inv-move-title').textContent=titles[kind]||'STOCK';
+  document.getElementById('inv-move-ing').textContent=`${item['Nombre']} · stock actual ${fmtInvQty(item['Stock'])} ${item['Unidad']||''}`;
+  const qtyWrap=document.getElementById('inv-move-qty-wrap');
+  const countWrap=document.getElementById('inv-move-count-wrap');
+  const isCount=kind==='conteo';
+  qtyWrap?.classList.toggle('hidden', isCount);
+  countWrap?.classList.toggle('hidden', !isCount);
+  if(isCount){
+    document.getElementById('inv-move-counted').value=fmtInvQty(item['Stock']);
+    document.getElementById('inv-move-qty').value='';
+  } else {
+    document.getElementById('inv-move-label').textContent=kind==='entrada'?'CANTIDAD QUE ENTRA':'CANTIDAD DE MERMA';
+    document.getElementById('inv-move-qty').value='';
+    document.getElementById('inv-move-counted').value='';
+  }
+  document.getElementById('inv-move-nota').value='';
+  document.getElementById('modal-inv-move').classList.remove('hidden');
+  (isCount?document.getElementById('inv-move-counted'):document.getElementById('inv-move-qty'))?.focus();
+}
+
 export function initInventoryTab(){
   const add=document.getElementById('btn-inv-add');
   if(!add) return;
   add.addEventListener('click',async()=>{
     const name=document.getElementById('inv-new-name').value.trim();
     if(!name){ toast('Pon un nombre de ingrediente','error'); return; }
-    if(findInvItem(name)){ toast('Ya existe ese ingrediente','error'); return; }
+    if(findInvItem(name)){ toast('Ya existe ese ingrediente (mismo nombre).','error'); return; }
     const unidad=document.getElementById('inv-new-unit').value;
     const stock=parseFloat(document.getElementById('inv-new-stock').value)||0;
     const minimo=document.getElementById('inv-new-min').value;
     const ideal=document.getElementById('inv-new-ideal').value;
-    state.inventory.push({ Nombre:name, Unidad:unidad, Stock:stock, Minimo:minimo, Ideal:ideal, Proveedor:'', Nota:'' });
-    if(stock) pushMovement('compra', name, stock, unidad, '', 'Stock inicial');
+    state.inventory.push({ Nombre:name, Unidad:unidad, Stock:0, Minimo:minimo, Ideal:ideal, Proveedor:'', Nota:'' });
+    if(stock>0){
+      try{ applyStockMovement({ tipo:'entrada', name, qty:stock, nota:'Stock inicial' }); }
+      catch(err){ toast(err.message,'error'); return; }
+    }
     document.getElementById('inv-new-name').value='';
     document.getElementById('inv-new-stock').value='';
     document.getElementById('inv-new-min').value='';
@@ -280,18 +347,15 @@ export function initInventoryTab(){
   document.getElementById('btn-inv-reload').addEventListener('click',reloadData);
   const invSearch=document.getElementById('inv-search');
   if(invSearch) invSearch.addEventListener('input',renderInventory);
+  document.getElementById('inv-moves-filter')?.addEventListener('input',renderMovementsList);
   initRecipeBoard();
   document.getElementById('inv-tbody').addEventListener('change',async e=>{
     const idx=parseInt(e.target.dataset.idx);
     const item=state.inventory[idx]; if(!item) return;
     if(e.target.classList.contains('inv-edit-stock')){
-      const next=parseFloat(e.target.value); if(isNaN(next)) return;
-      const prev=parseFloat(item['Stock'])||0;
-      const delta=next-prev;
-      if(Math.abs(delta)<1e-9) return;
-      item['Stock']=next;
-      pushMovement('ajuste', item['Nombre'], delta, item['Unidad'], '', 'Edición manual de stock');
-      await persistInv();
+      toast('El stock no se edita a mano. Usa Entrada, Merma o Conteo.','info');
+      renderInventory();
+      return;
     }
     if(e.target.classList.contains('inv-edit-min')){ item['Minimo']=e.target.value; await persistInv(); }
     if(e.target.classList.contains('inv-edit-ideal')){ item['Ideal']=e.target.value; await persistInv(); }
@@ -308,16 +372,9 @@ export function initInventoryTab(){
       await persistInv();
       return;
     }
-    const kind=btn.classList.contains('inv-btn-in')?'compra':'merma';
-    document.getElementById('inv-move-name').value=item['Nombre'];
-    document.getElementById('inv-move-kind').value=kind;
-    document.getElementById('inv-move-title').textContent=kind==='compra'?'＋ ENTRADA DE STOCK':'MERMA';
-    document.getElementById('inv-move-ing').textContent=`${item['Nombre']} · actual ${fmtInvQty(item['Stock'])} ${item['Unidad']||''}`;
-    document.getElementById('inv-move-label').textContent=kind==='compra'?'CANTIDAD QUE ENTRA':'CANTIDAD DE MERMA';
-    document.getElementById('inv-move-qty').value='';
-    document.getElementById('inv-move-nota').value='';
-    document.getElementById('modal-inv-move').classList.remove('hidden');
-    document.getElementById('inv-move-qty').focus();
+    if(btn.classList.contains('inv-btn-in')) return openMoveModal(item, 'entrada');
+    if(btn.classList.contains('inv-btn-waste')) return openMoveModal(item, 'merma');
+    if(btn.classList.contains('inv-btn-count')) return openMoveModal(item, 'conteo');
   });
   const moveModal=document.getElementById('modal-inv-move');
   document.getElementById('btn-inv-move-cancel').addEventListener('click',()=>moveModal.classList.add('hidden'));
@@ -325,19 +382,22 @@ export function initInventoryTab(){
   document.getElementById('btn-inv-move-save').addEventListener('click',async()=>{
     const name=document.getElementById('inv-move-name').value;
     const kind=document.getElementById('inv-move-kind').value;
-    const item=findInvItem(name); if(!item) return;
-    const qty=parseFloat(document.getElementById('inv-move-qty').value);
-    if(!qty||qty<=0){ toast('Cantidad inválida','error'); return; }
     const nota=document.getElementById('inv-move-nota').value.trim();
-    if(kind==='compra'){
-      item['Stock']=(parseFloat(item['Stock'])||0)+qty;
-      pushMovement('compra', item['Nombre'], qty, item['Unidad'], '', nota||'Entrada de stock');
-    } else {
-      item['Stock']=(parseFloat(item['Stock'])||0)-qty;
-      pushMovement('merma', item['Nombre'], -qty, item['Unidad'], '', nota||'Merma');
+    try{
+      applyStockMovement({
+        tipo:kind,
+        name,
+        qty:document.getElementById('inv-move-qty').value,
+        counted:document.getElementById('inv-move-counted').value,
+        nota,
+      });
+    }catch(err){
+      toast(err.message,'error');
+      return;
     }
     moveModal.classList.add('hidden');
     await persistInv();
+    toast('✔ Movimiento registrado','success');
   });
 }
 
