@@ -122,21 +122,31 @@ export function applyThemeColors(theme){
 /** Marca del negocio activo (nube) o defaults Smashiza (Excel/demo). */
 export function activeBranding(){
   const theme=activeTheme();
+  const beige=
+    theme.primary===DEFAULT_THEME.primary && theme.secondary===DEFAULT_THEME.secondary && theme.bg===DEFAULT_THEME.bg
+      ? DEFAULT_THEME.beige
+      : undefined;
   if(state.cloud && state.businessId){
-    const name=(state.ticketName||state.businessName||'Mi negocio').trim()||'Mi negocio';
+    const isSmashiza=state.businessId===SMASHIZA_BUSINESS_ID;
+    // Tenant ajeno: nunca inventar "LA SMASHIZA". Smashiza: defaults de seed si faltan campos.
+    const rawName=(state.ticketName||state.businessName||'').trim();
+    const name=rawName || (isSmashiza ? 'LA SMASHIZA' : 'Mi negocio');
+    const tagline=(state.ticketTagline||'').trim() || (isSmashiza && !rawName ? 'RETRO BURGER' : '');
     return {
       businessId:state.businessId,
       name,
-      tagline:(state.ticketTagline||'').trim(),
+      tagline,
       phone:(state.phone||'').trim(),
       footer:(state.ticketFooter||'').trim()||'Confirma tu pedido por WhatsApp',
       logoPath:(state.logoPath||'').trim(),
       logoUrl:logoPublicUrl(state.logoPath),
       poweredBy:POWERED_BY_SMASHIZA,
-      isSmashiza:state.businessId===SMASHIZA_BUSINESS_ID,
+      isSmashiza,
       ...theme,
+      beige:beige||DEFAULT_THEME.beige,
     };
   }
+  // Excel / demo local: sigue siendo Smashiza.
   return {
     businessId:null,
     name:'LA SMASHIZA',
@@ -148,6 +158,7 @@ export function activeBranding(){
     poweredBy:POWERED_BY_SMASHIZA,
     isSmashiza:true,
     ...theme,
+    beige:DEFAULT_THEME.beige,
   };
 }
 

@@ -110,6 +110,15 @@ html,body{height:100%;background:var(--bg-dark);color:var(--beige);font-family:v
 .caja-check{font-size:12px;color:var(--beige-dark);}
 .caja-check.ok{color:var(--green);}
 .caja-check.warn{color:var(--orange,#e6a23c);}
+.caja-check-note{font-size:11px;color:var(--beige-dark);margin-bottom:.15rem;list-style:none;}
+.ready-banner{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:.75rem 1rem;margin:0 0 .85rem;padding:.65rem .85rem;border:1px solid var(--border);border-radius:2px;background:rgba(0,0,0,.22);}
+.ready-banner.hidden{display:none;}
+.ready-banner-warn{border-color:rgba(230,162,60,.55);background:rgba(230,162,60,.08);}
+.ready-banner-msg{display:block;font-size:13px;color:var(--beige);margin-bottom:.25rem;}
+.ready-banner-list{margin:.2rem 0 .35rem 1rem;padding:0;font-size:12px;color:var(--orange,#e6a23c);}
+.ready-banner-foot{margin:0;font-size:11px;color:var(--beige-dark);}
+.ready-banner-actions{display:flex;flex-wrap:wrap;gap:.35rem;margin-left:auto;}
+.ticket-brand-hint{margin:.35rem 0 .5rem;font-size:11px;}
 .caja-sales-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem .85rem;margin-top:.5rem;}
 .caja-sales-label{display:block;font-family:var(--pixel);font-size:6px;color:var(--beige-dark);letter-spacing:.4px;margin-bottom:.2rem;}
 .caja-recent-list{list-style:none;margin:.5rem 0 0;padding:0;display:flex;flex-direction:column;gap:.4rem;}

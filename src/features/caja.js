@@ -1,11 +1,12 @@
 import { expectedCash, shiftDifference, shiftSalesTotals } from '../domain/cash.js';
-import { MENU } from '../domain/menu.js';
+import { buildReadyChecklist } from '../domain/ready.js';
 import { state } from '../state.js';
 import {
   closeCashShift, getOpenCashShift, listBusinessMembers, listCashShifts, openCashShift,
 } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
 import { escHtml, fmtMoney, peso } from '../utils/format.js';
+import { refreshReadyBanner } from './ready-banner.js';
 
 let openShift=null;
 let recentShifts=[];
@@ -38,20 +39,14 @@ function liveSales(){
 function renderChecklist(){
   const el=document.getElementById('caja-checklist');
   if(!el) return;
-  const hasProduct=MENU.length>0;
-  const members=state._cajaMembersCount;
-  const hasCashier=members==null?null:members>=2 || state.businessRole==='cashier';
-  const items=[
-    { ok:!!state.businessId, label:'Negocio activo' },
-    { ok:hasProduct, label:'Menú con al menos un producto' },
-    {
-      ok:hasCashier===null?true:!!hasCashier,
-      label:hasCashier
-        ? 'Equipo listo (dueño + cajero u operas como cajero)'
-        : 'Opcional: crea un cajero en NEGOCIO → EQUIPO',
-    },
-  ];
-  el.innerHTML=items.map(i=>`
+  const check=buildReadyChecklist({
+    openShift,
+    membersCount:state._cajaMembersCount,
+  });
+  const note=check.isSmashiza
+    ? 'Solo avisos — La Smashiza puede vender igual si algo falta.'
+    : 'Solo avisos — no bloquea el POS; completa lo rojo cuando puedas.';
+  el.innerHTML=`<li class="caja-check-note">${escHtml(note)}</li>`+check.items.map(i=>`
     <li class="caja-check ${i.ok?'ok':'warn'}">${i.ok?'✔':'○'} ${escHtml(i.label)}</li>
   `).join('');
 }
@@ -160,10 +155,12 @@ export async function renderCajaTab(){
     recentShifts=[];
   }
 
+  state._openCashShift=openShift||null;
   renderChecklist();
   renderOpenPanel();
   renderRecent();
   renderLastClosed();
+  refreshReadyBanner({ openShift, membersCount:state._cajaMembersCount });
 }
 
 export function initCajaTab(){
