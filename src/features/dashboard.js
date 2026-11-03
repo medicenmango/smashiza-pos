@@ -3,6 +3,7 @@ import { todayCashInDrawer } from '../domain/orders.js';
 import { goToInventarioTab } from './nav.js';
 import { renderLiveQueue } from './nueva-orden.js';
 import { openOrderDetail, badgeClass } from './ordenes.js';
+import { loadReadyBanner } from './ready-banner.js';
 import { state } from '../state.js';
 import { relTime } from '../ui/clock.js';
 import { pad, fmtDate, fmtMoney, today, escHtml } from '../utils/format.js';
@@ -202,6 +203,7 @@ export function getDashOrders(){
 export function renderDateChips(){} // kept for compat, no-op
 
 export function refreshDashboard(){
+  loadReadyBanner();
   const periodoO  = getDashOrders();
   const activasO  = periodoO.filter(o=>o['Estado']!=='Cancelada');
   const canceladas= periodoO.filter(o=>o['Estado']==='Cancelada').length;

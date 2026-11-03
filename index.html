@@ -317,6 +317,8 @@
   <!-- ── DASHBOARD ── -->
   <div id="tab-dashboard" class="tab-content active">
 
+    <div id="ready-banner" class="ready-banner hidden" role="status"></div>
+
     <!-- Range date picker -->
     <div class="dash-filter-bar">
       <div class="dash-range-top">
@@ -391,6 +393,7 @@
       <div class="card" style="max-width:520px">
         <h2 class="card-title"><span class="pixel-icon">💵</span> CORTE DE CAJA</h2>
         <p class="setup-hint">Apertura con fondo → ventas del turno (Efectivo / Transferencia / Tarjeta) → cierre con esperado vs contado. <strong>No borra órdenes.</strong> Dueño y cajero pueden usarlo.</p>
+        <h3 class="card-title" style="margin-top:.75rem;font-size:9px"><span class="pixel-icon">☑</span> LISTO PARA EL TURNO</h3>
         <ul id="caja-checklist" class="caja-checklist"></ul>
         <div id="caja-last-closed" class="caja-last-closed setup-hint hidden"></div>
 
@@ -519,6 +522,7 @@
               <button class="btn-primary" id="btn-guardar-orden">► MANDAR COMANDA</button>
               <button type="button" class="btn-secondary" id="btn-copiar-ticket">📋 COPIAR PARA CLIENTE</button>
             </div>
+            <p class="setup-hint ticket-brand-hint">El recibo usa logo, nombre y teléfono de <strong>NEGOCIO</strong> + pie “powered by Smashiza”. Pégalo en WhatsApp.</p>
             <button class="btn-secondary" id="btn-limpiar-orden">✕ LIMPIAR</button>
           </div>
         </div>
