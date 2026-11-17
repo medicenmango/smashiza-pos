@@ -151,15 +151,11 @@ export function getFilteredMenuItems(){
   let items = state.activeCat==='all' ? MENU : MENU.filter(i=>i.cat===state.activeCat);
   const q = state.menuSearch.trim().toLowerCase();
   if(q) items=items.filter(i=>menuItemMatches(i, q));
-  // Apply custom sort order per category
-  return items.sort((a,b)=>{
-    const orderA=state.menuOrder[a.cat]||[];
-    const orderB=state.menuOrder[b.cat]||[];
-    const ia=orderA.indexOf(a.id), ib=orderB.indexOf(b.id);
-    if(ia===-1&&ib===-1) return 0;
-    if(ia===-1) return 1;
-    if(ib===-1) return -1;
-    return ia-ib;
+  // Nueva orden: siempre precio mayor → menor (el orden custom queda para el editor de menú).
+  return items.slice().sort((a,b)=>{
+    const pa=Number(a.price)||0, pb=Number(b.price)||0;
+    if(pb!==pa) return pb-pa;
+    return String(a.name||'').localeCompare(String(b.name||''), 'es');
   });
 }
 
