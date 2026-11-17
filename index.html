@@ -542,8 +542,33 @@
       <div class="qs-item"><span class="qs-label">ENTREGADAS</span><span class="qs-val" id="qs-entregadas">0</span></div>
     </div>
     <div class="ordenes-header">
-      <div class="filter-bar">
-        <div class="filter-group"><label class="filter-label">FECHA</label><input type="date" id="filter-fecha" class="pixel-input date-filter"/></div>
+      <div class="dash-filter-bar" id="ordenes-date-filter">
+        <div class="dash-range-top">
+          <div class="dash-range-info">
+            <span class="filter-label">📅 PERÍODO ACTIVO</span>
+            <span class="dash-range-label" id="ord-range-label">Hoy</span>
+          </div>
+          <div class="dash-btn-row">
+            <button class="btn-secondary btn-inline" id="btn-ord-hoy">HOY</button>
+            <button class="btn-secondary btn-inline" id="btn-ord-semana">7 DÍAS</button>
+            <button class="btn-secondary btn-inline" id="btn-ord-mes">ESTE MES</button>
+            <button class="btn-secondary btn-inline" id="btn-ord-todo">TODO</button>
+            <button class="btn-secondary btn-inline" id="btn-ord-toggle-cal">📅 SELECCIONAR FECHAS ▼</button>
+          </div>
+        </div>
+        <div id="ord-cal-collapse" class="hidden">
+          <div class="cal-wrap" style="margin-top:.75rem">
+            <button class="cal-nav" id="btn-ord-cal-prev">◀</button>
+            <div class="cal-months" id="ord-cal-months-wrap">
+              <div id="ord-cal-left" class="cal-month"></div>
+              <div id="ord-cal-right" class="cal-month"></div>
+            </div>
+            <button class="cal-nav" id="btn-ord-cal-next">▶</button>
+          </div>
+          <p class="table-hint" style="margin-top:.4rem">1er clic = inicio del rango · 2do clic = fin · los puntos 🟢 indican días con órdenes</p>
+        </div>
+      </div>
+      <div class="filter-bar" style="margin-top:.65rem">
         <div class="filter-group"><label class="filter-label">ESTADO</label>
           <select id="filter-estado" class="pixel-input">
             <option value="">TODOS</option>
@@ -552,7 +577,6 @@
         </div>
         <div class="filter-group"><label class="filter-label">🔍 BUSCAR</label><input type="text" id="filter-buscar" class="pixel-input" placeholder="Cliente, #orden, producto..."/></div>
         <div class="filter-actions">
-          <button class="btn-secondary btn-inline" id="btn-clear-date">📅 VER TODO</button>
           <button class="btn-secondary btn-inline" id="btn-reload">⟳ RECARGAR</button>
         </div>
       </div>
