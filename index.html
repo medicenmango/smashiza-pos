@@ -513,6 +513,11 @@
               <input type="number" id="f-recibido" class="pixel-input" min="0" step="1" placeholder="Ej: 500"/>
               <div id="cash-result" class="cash-result"></div>
             </div>
+            <div class="form-group full hidden" id="card-fee-wrap">
+              <label>COBRAR EN TERMINAL (ayuda)</label>
+              <div id="card-fee-hint" class="card-fee-hint">—</div>
+              <p class="setup-hint" style="margin:.35rem 0 0">Solo referencia (+4.5%). El <strong>TOTAL</strong> de la orden no cambia.</p>
+            </div>
           </div>
           <div class="ticket-actions">
             <div class="ticket-btn-row">
@@ -729,6 +734,11 @@
         </div>
         <input type="number" id="edit-recibido" class="pixel-input" min="0" step="1" placeholder="Ej: 500"/>
         <div id="edit-cash-result" class="cash-result"></div>
+      </div>
+      <div class="form-group hidden" id="edit-card-fee-wrap">
+        <label>💳 COBRAR EN TERMINAL (ayuda)</label>
+        <div id="edit-card-fee-hint" class="card-fee-hint">—</div>
+        <p class="setup-hint" style="margin:.35rem 0 0">Solo referencia (+4.5%). El TOTAL de la orden no cambia.</p>
       </div>
       <div class="form-group"><label>🔄 ESTADO</label><select id="detail-estado-select" class="pixel-input"></select></div>
       <div class="form-group full"><label>💬 COMENTARIOS</label><textarea id="edit-comentarios" class="pixel-input" rows="2"></textarea></div>
