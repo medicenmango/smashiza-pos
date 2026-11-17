@@ -4,7 +4,7 @@ import { MENU } from '../domain/menu.js';
 import { cashBreakdown, todayCashInDrawer, orderItems, setOrderItems } from '../domain/orders.js';
 import { refreshDashboard } from './dashboard.js';
 import { notifyInventoryResult, renderInventory } from './inventario.js';
-import { renderCashResult, applyCashQuick } from './nueva-orden.js';
+import { renderCashResult, applyCashQuick, renderCardFeeHint } from './nueva-orden.js';
 import { collectEditOrderTicket, copyTicketForClient } from './ticket.js';
 import { state } from '../state.js';
 import { canReload, reload, saveOrder, deleteOrder } from '../storage/index.js';
@@ -12,18 +12,29 @@ import { relTime } from '../ui/clock.js';
 import { toast } from '../ui/toast.js';
 import { toYmd, toHms, fmtMoney, peso, parsePesoOptional, today, escHtml } from '../utils/format.js';
 
-export function updateEditCashUI(){
-  const wrap=document.getElementById('edit-cash-wrap');
-  const pago=document.getElementById('edit-pago');
-  if(!wrap||!pago) return;
-  const isCash=pago.value==='Efectivo';
-  wrap.classList.toggle('hidden', !isCash);
-  if(!isCash) return;
+function editModalTotal(){
   const modal=document.getElementById('modal-detail');
   const cart=modal?._editCart||[];
   const ajuste=parseFloat(document.getElementById('edit-ajuste')?.value)||0;
-  const total=peso(Math.max(0, cart.reduce((s,c)=>s+c.price*c.qty,0)+ajuste));
-  renderCashResult(document.getElementById('edit-cash-result'), total, parsePesoOptional(document.getElementById('edit-recibido')?.value));
+  return peso(Math.max(0, cart.reduce((s,c)=>s+c.price*c.qty,0)+ajuste));
+}
+
+export function updateEditCashUI(){
+  const wrap=document.getElementById('edit-cash-wrap');
+  const cardWrap=document.getElementById('edit-card-fee-wrap');
+  const pago=document.getElementById('edit-pago');
+  if(!pago) return;
+  const isCash=pago.value==='Efectivo';
+  const isCard=pago.value==='Tarjeta';
+  const total=editModalTotal();
+  if(wrap) wrap.classList.toggle('hidden', !isCash);
+  if(cardWrap){
+    cardWrap.classList.toggle('hidden', !isCard);
+    if(isCard) renderCardFeeHint(document.getElementById('edit-card-fee-hint'), total);
+  }
+  if(isCash){
+    renderCashResult(document.getElementById('edit-cash-result'), total, parsePesoOptional(document.getElementById('edit-recibido')?.value));
+  }
 }
 
 export async function reloadData(){

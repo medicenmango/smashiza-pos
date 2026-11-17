@@ -248,6 +248,8 @@ select.pixel-input option{background:var(--bg-card);}
 .cash-result.cash-short{color:var(--orange);}
 .cash-result.cash-warn{color:var(--beige-dark);font-weight:400;font-size:11px;}
 .cash-badge{font-size:10px;color:var(--green);margin-top:.15rem;font-family:var(--mono);}
+.card-fee-hint{margin-top:.15rem;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--yellow);line-height:1.35;}
+.card-fee-hint .card-fee-detail{display:block;margin-top:.2rem;font-size:11px;font-weight:400;color:var(--beige-dark);}
 .ticket-pay{margin:.65rem 0 .5rem;padding-top:.55rem;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:.55rem;}
 .ticket-pay .pay-opt{font-size:12px;padding:.45rem .35rem;}
 
