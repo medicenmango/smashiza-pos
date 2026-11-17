@@ -435,9 +435,58 @@
   <!-- ── NUEVA ORDEN ── -->
   <div id="tab-nueva-orden" class="tab-content hidden">
     <div class="orden-layout">
+      <div class="orden-menu-col">
+        <div class="card menu-picker-card">
+          <h3 class="card-title"><span class="pixel-icon">📌</span> SELECCIONAR PRODUCTOS</h3>
+          <input type="text" id="menu-search" class="pixel-input menu-search-bar" placeholder="🔍 Buscar producto..."/>
+          <div class="menu-categories" id="menu-cat-btns"></div>
+          <div id="menu-grid" class="menu-grid"></div>
+        </div>
+      </div>
+      <div class="orden-ticket-col">
+        <div class="card ticket-card">
+          <h3 class="card-title"><span class="pixel-icon">🧾</span> TICKET <span class="orden-num-badge" id="orden-num-badge">#—</span></h3>
+          <div id="ticket-items" class="ticket-items"><div class="empty-ticket">Sin productos</div></div>
+          <div class="ticket-subtotal-row"><span>Subtotal</span><span id="ticket-subtotal">$0</span></div>
+          <div id="ticket-ajuste-display" class="ticket-ajuste-display"></div>
+          <div class="ticket-total-row"><span>TOTAL</span><span id="ticket-total" class="ticket-total">$0</span></div>
+          <div class="ticket-pay">
+            <div class="form-group full">
+              <label>MÉTODO DE PAGO</label>
+              <div class="pay-toggle">
+                <button class="pay-opt active" data-pay="Efectivo">💵 Efectivo</button>
+                <button class="pay-opt" data-pay="Transferencia">📱 Transferencia</button>
+                <button class="pay-opt" data-pay="Tarjeta">💳 Tarjeta</button>
+              </div>
+            </div>
+            <div class="form-group full" id="cash-wrap">
+              <label>¿CON CUÁNTO PAGA?</label>
+              <div class="cash-quick">
+                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="200">$200</button>
+                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="500">$500</button>
+                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="exact">EXACTO</button>
+              </div>
+              <input type="number" id="f-recibido" class="pixel-input" min="0" step="1" placeholder="Ej: 500"/>
+              <div id="cash-result" class="cash-result"></div>
+            </div>
+            <div class="form-group full hidden" id="card-fee-wrap">
+              <label>COBRAR EN TERMINAL (ayuda)</label>
+              <div id="card-fee-hint" class="card-fee-hint">—</div>
+              <p class="setup-hint" style="margin:.35rem 0 0">Solo referencia (+4.5%). El <strong>TOTAL</strong> de la orden no cambia.</p>
+            </div>
+          </div>
+          <div class="ticket-actions">
+            <button class="btn-primary ticket-primary" id="btn-guardar-orden">► MANDAR COMANDA</button>
+            <div class="ticket-secondary-row">
+              <button type="button" class="btn-secondary" id="btn-copiar-ticket">📋 COPIAR PARA CLIENTE</button>
+              <button class="btn-secondary" id="btn-limpiar-orden">✕ LIMPIAR</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="orden-form-col">
         <div class="card orden-card">
-          <h2 class="card-title"><span class="pixel-icon">🍔</span> NUEVA ORDEN <span class="orden-num-badge" id="orden-num-badge">#—</span></h2>
+          <h2 class="card-title"><span class="pixel-icon">🍔</span> DATOS DE LA ORDEN</h2>
           <div class="form-grid">
             <div class="form-group" style="position:relative">
               <label>CLIENTE</label>
@@ -479,53 +528,6 @@
         <div class="card live-queue-card">
           <h3 class="card-title"><span class="pixel-icon">🕹️</span> ÓRDENES RECIENTES <span class="card-title-hint">— hoy · activas · clic para editar</span></h3>
           <div id="live-orders" class="live-queue"><div class="empty-list">Sin órdenes activas hoy</div></div>
-        </div>
-      </div>
-      <div class="orden-menu-col">
-        <div class="card menu-picker-card">
-          <h3 class="card-title"><span class="pixel-icon">📌</span> SELECCIONAR PRODUCTOS</h3>
-          <input type="text" id="menu-search" class="pixel-input menu-search-bar" placeholder="🔍 Buscar producto..."/>
-          <div class="menu-categories" id="menu-cat-btns"></div>
-          <div id="menu-grid" class="menu-grid"></div>
-        </div>
-        <div class="card ticket-card">
-          <h3 class="card-title"><span class="pixel-icon">🧾</span> TICKET</h3>
-          <div id="ticket-items" class="ticket-items"><div class="empty-ticket">Sin productos</div></div>
-          <div class="ticket-subtotal-row"><span>Subtotal</span><span id="ticket-subtotal">$0</span></div>
-          <div id="ticket-ajuste-display" class="ticket-ajuste-display"></div>
-          <div class="ticket-total-row"><span>TOTAL</span><span id="ticket-total" class="ticket-total">$0</span></div>
-          <div class="ticket-pay">
-            <div class="form-group full">
-              <label>MÉTODO DE PAGO</label>
-              <div class="pay-toggle">
-                <button class="pay-opt active" data-pay="Efectivo">💵 Efectivo</button>
-                <button class="pay-opt" data-pay="Transferencia">📱 Transferencia</button>
-                <button class="pay-opt" data-pay="Tarjeta">💳 Tarjeta</button>
-              </div>
-            </div>
-            <div class="form-group full" id="cash-wrap">
-              <label>¿CON CUÁNTO PAGA?</label>
-              <div class="cash-quick">
-                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="200">$200</button>
-                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="500">$500</button>
-                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="exact">EXACTO</button>
-              </div>
-              <input type="number" id="f-recibido" class="pixel-input" min="0" step="1" placeholder="Ej: 500"/>
-              <div id="cash-result" class="cash-result"></div>
-            </div>
-            <div class="form-group full hidden" id="card-fee-wrap">
-              <label>COBRAR EN TERMINAL (ayuda)</label>
-              <div id="card-fee-hint" class="card-fee-hint">—</div>
-              <p class="setup-hint" style="margin:.35rem 0 0">Solo referencia (+4.5%). El <strong>TOTAL</strong> de la orden no cambia.</p>
-            </div>
-          </div>
-          <div class="ticket-actions">
-            <div class="ticket-btn-row">
-              <button class="btn-primary" id="btn-guardar-orden">► MANDAR COMANDA</button>
-              <button type="button" class="btn-secondary" id="btn-copiar-ticket">📋 COPIAR PARA CLIENTE</button>
-            </div>
-            <button class="btn-secondary" id="btn-limpiar-orden">✕ LIMPIAR</button>
-          </div>
         </div>
       </div>
     </div>
