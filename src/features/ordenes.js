@@ -11,7 +11,7 @@ import { canReload, reload, saveOrder, deleteOrder } from '../storage/index.js';
 import { relTime } from '../ui/clock.js';
 import { bindDateRangeFilter, createDateRange, filterByDateRange } from '../ui/date-range.js';
 import { toast } from '../ui/toast.js';
-import { toYmd, toHms, fmtMoney, peso, parsePesoOptional, escHtml } from '../utils/format.js';
+import { toYmd, toHms, fmtMoney, peso, parsePesoOptional, today, escHtml } from '../utils/format.js';
 
 /** Mismo panel de fechas que el dashboard (HOY / 7 DÍAS / mes / TODO / calendario). */
 export const ordersRange=createDateRange(true);
