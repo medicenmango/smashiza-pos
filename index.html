@@ -31,15 +31,12 @@
         <div class="form-group"><label>CONTRASEÑA</label><input type="password" id="login-password" class="pixel-input" autocomplete="current-password" required/></div>
         <button type="submit" class="btn-primary" id="btn-login">► ENTRAR</button>
       </form>
-      <p class="setup-hint">¿Negocio nuevo? <a href="#" id="link-show-signup">Crear cuenta</a> (usuario + contraseña, sin correo)</p>
-      <form id="signup-form" class="login-form hidden">
-        <h2 class="card-title"><span class="pixel-icon">✨</span> CREAR CUENTA</h2>
-        <p class="setup-hint">Usuario + contraseña. Sin correo. Si ya tienes cuenta, vuelve atrás.</p>
-        <div class="form-group"><label>USUARIO</label><input type="text" id="signup-user" class="pixel-input" autocomplete="username" required minlength="3" maxlength="32" placeholder="ej. taqueria_elguero"/></div>
-        <div class="form-group"><label>CONTRASEÑA</label><input type="password" id="signup-password" class="pixel-input" autocomplete="new-password" minlength="6" required/></div>
-        <button type="submit" class="btn-primary" id="btn-signup">► CREAR CUENTA</button>
-        <button type="button" class="btn-secondary" id="btn-signup-cancel">← ATRÁS · Ya tengo cuenta</button>
-      </form>
+      <p class="setup-hint" id="login-access-hint">El acceso lo abre Smashiza cuando el negocio ya está pagado. Entra con el usuario y la contraseña que te dimos.</p>
+      <div id="access-closed-panel" class="hidden">
+        <h2 class="card-title"><span class="pixel-icon">🔒</span> ACCESO CERRADO</h2>
+        <p class="setup-hint">Esta cuenta no tiene un negocio. Pide tu acceso a Smashiza.</p>
+        <button type="button" class="btn-secondary" id="btn-access-closed-back">← ATRÁS · Cerrar sesión</button>
+      </div>
       <div id="create-business-panel" class="hidden">
         <h2 class="card-title"><span class="pixel-icon">🏪</span> TU NEGOCIO</h2>
         <p class="setup-hint">Crea tu negocio. Luego podrás subir logo y datos del ticket. El pie fijo será “powered by Smashiza”.</p>
@@ -179,8 +176,30 @@
           </form>
           <ul id="biz-team-list" class="biz-team-list"></ul>
         </div>
+        <div id="biz-platform-block" class="hidden">
+          <h2 class="card-title"><span class="pixel-icon">🔑</span> CLIENTES DEL POS</h2>
+          <p class="setup-hint">Cuando alguien te pague, créale aquí el negocio y el usuario de dueño. Pásale usuario y contraseña: con eso entra. Sus cajeros los crea él en EQUIPO. Si deja de pagar, suspéndelo. La Smashiza no se suspende.</p>
+          <form id="biz-provision-form" class="login-form">
+            <div class="form-group">
+              <label>NOMBRE DEL NEGOCIO</label>
+              <input type="text" id="biz-provision-name" class="pixel-input" maxlength="80" required placeholder="Ej: Taquería El Guero"/>
+            </div>
+            <div class="form-group">
+              <label>USUARIO DEL DUEÑO</label>
+              <input type="text" id="biz-provision-user" class="pixel-input" autocomplete="off" minlength="3" maxlength="32" required placeholder="ej. elguero"/>
+            </div>
+            <div class="form-group">
+              <label>CONTRASEÑA</label>
+              <input type="password" id="biz-provision-password" class="pixel-input" autocomplete="new-password" minlength="6" required/>
+            </div>
+            <button type="submit" class="btn-primary" id="biz-provision-btn">► DAR ACCESO</button>
+          </form>
+          <p id="biz-provision-result" class="setup-hint hidden"></p>
+          <ul id="biz-platform-list" class="biz-platform-list"></ul>
+        </div>
         <div id="biz-create-extra" class="hidden" style="margin-top:1.25rem">
-          <button type="button" class="btn-secondary" id="biz-create-extra-btn">＋ Crear otro negocio</button>
+          <p class="setup-hint">Esto te deja a ti como dueño de otro local. Para un cliente que ya pagó, usa CLIENTES DEL POS.</p>
+          <button type="button" class="btn-secondary" id="biz-create-extra-btn">＋ Crear otro negocio mío</button>
         </div>
         <div id="biz-delete-block" class="hidden" style="max-width:420px;margin-top:1.75rem;padding-top:1rem;border-top:1px dashed var(--border)">
           <h2 class="card-title" style="color:var(--red)"><span class="pixel-icon">⚠️</span> ZONA PELIGRO</h2>
@@ -866,6 +885,18 @@
       <button class="btn-icon detail-close" id="btn-hour-modal-close">✕</button>
     </div>
     <div id="hour-modal-body"></div>
+  </div>
+</div>
+
+<div id="suspended-wall" class="hidden" role="alertdialog" aria-modal="true" aria-labelledby="suspended-title">
+  <div class="card suspended-card">
+    <h2 class="card-title" id="suspended-title"><span class="pixel-icon">⏸</span> NEGOCIO SUSPENDIDO</h2>
+    <p class="setup-hint"><strong id="suspended-biz-name">Este negocio</strong> no tiene acceso. Habla con Smashiza para reactivarlo. Tus datos siguen guardados.</p>
+    <div class="form-group hidden" id="suspended-switch-wrap">
+      <label for="suspended-switcher">ENTRAR A OTRO NEGOCIO</label>
+      <select id="suspended-switcher" class="pixel-input"></select>
+    </div>
+    <button type="button" class="btn-secondary" id="suspended-logout">⏻ CERRAR SESIÓN</button>
   </div>
 </div>
 
