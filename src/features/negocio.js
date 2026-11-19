@@ -1,6 +1,7 @@
 import { isOwner } from '../auth/roles.js';
 import {
-  applyChromeBranding, activeBranding, applyThemeColors, THEME_PRESETS, normalizeHex,
+  applyChromeBranding, activeBranding, THEME_PRESETS, normalizeHex,
+  normalizeFont, fontStack, POWERED_BY_SMASHIZA,
 } from '../domain/branding.js';
 import { SMASHIZA_BUSINESS_ID } from '../constants.js';
 import { state } from '../state.js';
@@ -20,7 +21,50 @@ function readThemeFromPickers(){
     primary:normalizeHex(document.getElementById('biz-color-primary')?.value, '#e63232'),
     secondary:normalizeHex(document.getElementById('biz-color-secondary')?.value, '#1a3bcc'),
     bg:normalizeHex(document.getElementById('biz-color-bg')?.value, '#0d0820'),
+    fontFamily:normalizeFont(document.getElementById('biz-font')?.value),
+    fontColor:normalizeHex(document.getElementById('biz-font-color')?.value, '#ffd700'),
   };
+}
+
+function renderLookPreview(){
+  const box=document.getElementById('biz-look-preview');
+  if(!box) return;
+  const t=readThemeFromPickers();
+  const name=(document.getElementById('biz-ticket-name')?.value||'').trim()||activeBranding().name;
+  box.style.background=t.bg;
+  box.style.borderColor=t.primary;
+  const nameEl=document.getElementById('biz-look-name');
+  if(nameEl){
+    nameEl.textContent=name.toUpperCase();
+    nameEl.style.fontFamily=fontStack(t.fontFamily);
+    nameEl.style.color=t.fontColor;
+  }
+  const powered=box.querySelector('.biz-look-powered');
+  if(powered) powered.textContent=POWERED_BY_SMASHIZA;
+  const logo=document.getElementById('biz-look-logo');
+  const url=activeBranding().logoUrl;
+  if(logo){
+    if(url){
+      logo.src=url;
+      logo.classList.remove('hidden');
+    } else {
+      logo.removeAttribute('src');
+      logo.classList.add('hidden');
+    }
+  }
+}
+
+function applyLiveLook(){
+  const t=readThemeFromPickers();
+  state.colorPrimary=t.primary;
+  state.colorSecondary=t.secondary;
+  state.colorBg=t.bg;
+  state.fontFamily=t.fontFamily;
+  state.fontColor=t.fontColor;
+  const name=document.getElementById('biz-ticket-name');
+  if(name) state.ticketName=name.value.trim();
+  applyChromeBranding();
+  renderLookPreview();
 }
 
 function fillThemePickers(theme){
@@ -31,6 +75,10 @@ function fillThemePickers(theme){
   if(p) p.value=normalizeHex(t.primary||state.colorPrimary, '#e63232');
   if(s) s.value=normalizeHex(t.secondary||state.colorSecondary, '#1a3bcc');
   if(bg) bg.value=normalizeHex(t.bg||state.colorBg, '#0d0820');
+  const font=document.getElementById('biz-font');
+  const ink=document.getElementById('biz-font-color');
+  if(font) font.value=normalizeFont(t.fontFamily||state.fontFamily);
+  if(ink) ink.value=normalizeHex(t.fontColor||state.fontColor, '#ffd700');
   const block=document.getElementById('biz-theme-block');
   if(block){
     block.querySelectorAll('input,button').forEach(el=>{
@@ -77,7 +125,7 @@ function fillForm(){
   const form=document.getElementById('biz-branding-form');
   if(ro) ro.classList.toggle('hidden', isOwner());
   if(form){
-    form.querySelectorAll('input,textarea,button').forEach(el=>{
+    form.querySelectorAll('input,textarea,select,button').forEach(el=>{
       if(el.id==='biz-refresh-brand') return;
       el.disabled=!isOwner() && el.type!=='button';
     });
@@ -99,6 +147,7 @@ function fillForm(){
     if(conf) conf.value='';
   }
   fillThemePickers(b);
+  renderLookPreview();
   fillSwitcher();
   const team=document.getElementById('biz-team-block');
   if(team) team.classList.toggle('hidden', !isOwner());
@@ -281,9 +330,17 @@ export function initNegocioTab(){
         phone:document.getElementById('biz-phone').value.trim(),
         ticketFooter:document.getElementById('biz-ticket-footer').value.trim(),
       });
+      const t=readThemeFromPickers();
+      await updateMyBusinessTheme({
+        colorPrimary:t.primary,
+        colorSecondary:t.secondary,
+        colorBg:t.bg,
+        fontFamily:t.fontFamily,
+        fontColor:t.fontColor,
+      });
       applyChromeBranding();
       fillForm();
-      toast('✔ Marca del ticket guardada.','success');
+      toast('✔ Look guardado.','success');
     }catch(err){
       toast('Error: '+err.message,'error');
     }finally{
@@ -326,37 +383,20 @@ export function initNegocioTab(){
       const preset=THEME_PRESETS[btn.dataset.preset];
       if(!preset) return;
       fillThemePickers(preset);
-      applyThemeColors(preset);
+      applyLiveLook();
       toast(`Preset “${preset.label}” aplicado (guarda para persistir).`,'info');
     });
   });
 
-  ['biz-color-primary','biz-color-secondary','biz-color-bg'].forEach(id=>{
+  ['biz-color-primary','biz-color-secondary','biz-color-bg','biz-font-color','biz-ticket-name'].forEach(id=>{
     document.getElementById(id)?.addEventListener('input',()=>{
       if(!isOwner()) return;
-      applyThemeColors(readThemeFromPickers());
+      applyLiveLook();
     });
   });
-
-  document.getElementById('biz-save-theme')?.addEventListener('click',async()=>{
-    if(!isOwner()){ toast('Solo el dueño puede editar colores.','error'); return; }
-    const btn=document.getElementById('biz-save-theme');
-    const t=readThemeFromPickers();
-    if(btn) btn.disabled=true;
-    try{
-      await updateMyBusinessTheme({
-        colorPrimary:t.primary,
-        colorSecondary:t.secondary,
-        colorBg:t.bg,
-      });
-      applyChromeBranding();
-      fillThemePickers();
-      toast('✔ Colores guardados en este negocio.','success');
-    }catch(err){
-      toast('Error: '+err.message,'error');
-    }finally{
-      if(btn) btn.disabled=false;
-    }
+  document.getElementById('biz-font')?.addEventListener('change',()=>{
+    if(!isOwner()) return;
+    applyLiveLook();
   });
 
   document.getElementById('biz-provision-form')?.addEventListener('submit',async e=>{

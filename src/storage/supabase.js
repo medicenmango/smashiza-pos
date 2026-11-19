@@ -93,6 +93,8 @@ function mapBusinessRow(r){
     colorPrimary:r.color_primary||'#e63232',
     colorSecondary:r.color_secondary||'#1a3bcc',
     colorBg:r.color_bg||'#0d0820',
+    fontFamily:r.font_family||'retro',
+    fontColor:r.font_color||'#ffd700',
     suspended:r.suspended===true,
   };
 }
@@ -109,6 +111,8 @@ function applyBusiness(b){
   state.colorPrimary=b.colorPrimary||'#e63232';
   state.colorSecondary=b.colorSecondary||'#1a3bcc';
   state.colorBg=b.colorBg||'#0d0820';
+  state.fontFamily=b.fontFamily||'retro';
+  state.fontColor=b.fontColor||'#ffd700';
   state.businessSuspended=b.suspended===true;
   storeBusinessId(b.id);
 }
@@ -126,6 +130,8 @@ function clearBusinessState(){
   state.colorPrimary='';
   state.colorSecondary='';
   state.colorBg='';
+  state.fontFamily='retro';
+  state.fontColor='#ffd700';
   state.businessSuspended=false;
   storeBusinessId('');
 }
@@ -284,22 +290,28 @@ export async function updateMyBusinessBranding({
   }
 }
 
-export async function updateMyBusinessTheme({ colorPrimary, colorSecondary, colorBg }={}){
+export async function updateMyBusinessTheme({ colorPrimary, colorSecondary, colorBg, fontFamily, fontColor }={}){
   const bid=requireBusinessId();
   check(await db().rpc('update_my_business_theme', {
     p_business_id:bid,
     p_color_primary:colorPrimary,
     p_color_secondary:colorSecondary,
     p_color_bg:colorBg,
+    p_font_family:fontFamily||'retro',
+    p_font_color:fontColor,
   }));
   state.colorPrimary=colorPrimary;
   state.colorSecondary=colorSecondary;
   state.colorBg=colorBg;
+  state.fontFamily=fontFamily||'retro';
+  state.fontColor=fontColor;
   const i=state.businesses.findIndex(b=>b.id===bid);
   if(i>=0){
     state.businesses[i]={
       ...state.businesses[i],
       colorPrimary, colorSecondary, colorBg,
+      fontFamily:state.fontFamily,
+      fontColor:state.fontColor,
     };
   }
 }
@@ -841,6 +853,7 @@ async function cacheState(){
       ticketName:state.ticketName, ticketTagline:state.ticketTagline, phone:state.phone,
       ticketFooter:state.ticketFooter, logoPath:state.logoPath,
       colorPrimary:state.colorPrimary, colorSecondary:state.colorSecondary, colorBg:state.colorBg,
+      fontFamily:state.fontFamily||'retro', fontColor:state.fontColor||'#ffd700',
       businessSuspended:state.businessSuspended===true,
     }, 'state'));
   }catch(e){ console.warn('[Smashiza] no se pudo guardar la copia local', e); }
@@ -877,6 +890,8 @@ export async function loadFromCache(){
     state.colorPrimary=c.colorPrimary||'#e63232';
     state.colorSecondary=c.colorSecondary||'#1a3bcc';
     state.colorBg=c.colorBg||'#0d0820';
+    state.fontFamily=c.fontFamily||'retro';
+    state.fontColor=c.fontColor||'#ffd700';
     state.businessSuspended=c.businessSuspended===true;
   }
   saved=Object.fromEntries(Object.entries(c.saved||{}).map(([t,entries])=>[t,new Map(entries)]));
