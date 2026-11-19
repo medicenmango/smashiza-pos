@@ -1,4 +1,5 @@
 import { isOwner } from '../auth/roles.js';
+import { clampIvaRate, formatIvaRate } from '../domain/orders.js';
 import {
   applyChromeBranding, activeBranding, THEME_PRESETS, normalizeHex,
   normalizeFont, fontStack, POWERED_BY_SMASHIZA,
@@ -8,9 +9,11 @@ import { state } from '../state.js';
 import {
   updateMyBusinessBranding, uploadBusinessLogo, clearBusinessLogo, createMyBusiness,
   switchActiveBusiness, resolveActiveBusiness, syncStatus, updateMyBusinessTheme,
+  updateMyBusinessIva,
   deleteMyBusiness, listBusinessMembers, createBusinessCashier, removeBusinessMember,
   currentUser, listPlatformBusinesses, provisionCustomerBusiness, setBusinessSuspended,
 } from '../storage/supabase.js';
+import { renderCart } from './nueva-orden.js';
 import { toast } from '../ui/toast.js';
 import { escHtml } from '../utils/format.js';
 
@@ -101,6 +104,16 @@ function fillSwitcher(){
   }).join('');
 }
 
+function fillIvaField(){
+  const inp=document.getElementById('biz-iva-rate');
+  const btn=document.getElementById('biz-save-iva');
+  if(inp){
+    inp.value=formatIvaRate(state.ivaRate);
+    inp.disabled=!isOwner();
+  }
+  if(btn) btn.disabled=!isOwner();
+}
+
 function fillForm(){
   const b=activeBranding();
   const name=document.getElementById('biz-ticket-name');
@@ -148,6 +161,7 @@ function fillForm(){
   }
   fillThemePickers(b);
   renderLookPreview();
+  fillIvaField();
   fillSwitcher();
   const team=document.getElementById('biz-team-block');
   if(team) team.classList.toggle('hidden', !isOwner());
@@ -284,6 +298,7 @@ export function renderNegocioTab(){
     }
     fillSwitcher();
     fillThemePickers();
+    fillIvaField();
     applyChromeBranding();
     refreshTeamList();
     refreshPlatformList();
@@ -315,6 +330,24 @@ export function initNegocioTab(){
     }catch(err){
       e.target.value=state.businessId||'';
       toast('Error: '+err.message,'error');
+    }
+  });
+
+  document.getElementById('biz-save-iva')?.addEventListener('click',async()=>{
+    if(!isOwner()){ toast('Solo el dueño puede cambiar el IVA.','error'); return; }
+    const rate=clampIvaRate(document.getElementById('biz-iva-rate')?.value);
+    const inp=document.getElementById('biz-iva-rate');
+    if(inp) inp.value=formatIvaRate(rate);
+    const btn=document.getElementById('biz-save-iva');
+    if(btn) btn.disabled=true;
+    try{
+      await updateMyBusinessIva(rate);
+      toast(`IVA guardado: ${formatIvaRate(rate)}%`,'success');
+      fillIvaField();
+      renderCart();
+    }catch(err){
+      toast('Error: '+err.message,'error');
+      if(btn) btn.disabled=!isOwner();
     }
   });
 

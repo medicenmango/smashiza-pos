@@ -3,6 +3,30 @@ import { MENU } from './menu.js';
 import { state } from '../state.js';
 import { peso, parsePesoOptional, today } from '../utils/format.js';
 
+/** Tasa de IVA en porcentaje, de 0 a 100, con dos decimales. */
+export function clampIvaRate(rate){
+  const n=Number(rate);
+  if(!isFinite(n)) return 0;
+  return Math.min(100, Math.max(0, Math.round(n*100)/100));
+}
+
+export function formatIvaRate(rate){
+  const n=clampIvaRate(rate);
+  return String(n);
+}
+
+/**
+ * Base = subtotal + ajuste (mínimo 0), redondeada a pesos.
+ * IVA = base × tasa / 100, redondeado a pesos.
+ * El total es lo que paga el cliente.
+ */
+export function orderTax(subtotal, ajuste, ratePercent){
+  const rate=clampIvaRate(ratePercent);
+  const base=peso(Math.max(0, (Number(subtotal)||0)+(Number(ajuste)||0)));
+  const iva=rate>0?peso(base*rate/100):0;
+  return { base, rate, iva, total:base+iva };
+}
+
 export function cashBreakdown(total, recibidoOpt){
   const tot=peso(total);
   if(recibidoOpt==null) return { empty:true, short:tot>0, falta:tot, cambio:null, recibido:null };
