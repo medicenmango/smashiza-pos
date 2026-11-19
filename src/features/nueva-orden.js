@@ -151,15 +151,11 @@ export function getFilteredMenuItems(){
   let items = state.activeCat==='all' ? MENU : MENU.filter(i=>i.cat===state.activeCat);
   const q = state.menuSearch.trim().toLowerCase();
   if(q) items=items.filter(i=>menuItemMatches(i, q));
-  // Apply custom sort order per category
-  return items.sort((a,b)=>{
-    const orderA=state.menuOrder[a.cat]||[];
-    const orderB=state.menuOrder[b.cat]||[];
-    const ia=orderA.indexOf(a.id), ib=orderB.indexOf(b.id);
-    if(ia===-1&&ib===-1) return 0;
-    if(ia===-1) return 1;
-    if(ib===-1) return -1;
-    return ia-ib;
+  // Nueva orden: siempre precio mayor → menor (el orden custom queda para el editor de menú).
+  return items.slice().sort((a,b)=>{
+    const pa=Number(a.price)||0, pb=Number(b.price)||0;
+    if(pb!==pa) return pb-pa;
+    return String(a.name||'').localeCompare(String(b.name||''), 'es');
   });
 }
 
@@ -245,13 +241,41 @@ export function renderCashResult(el, total, recibidoOpt){
   el.textContent=b.cambio===0?'Cambio: $0':'Cambio: '+fmtMoney(b.cambio);
 }
 
+/** Comisión terminal tarjeta: solo ayuda visual; no altera Total de la orden. */
+export const CARD_FEE_RATE=0.045;
+
+export function cardTerminalCharge(total){
+  const t=peso(total);
+  if(!(t>0)) return 0;
+  return peso(t*(1+CARD_FEE_RATE));
+}
+
+export function renderCardFeeHint(el, total){
+  if(!el) return;
+  const t=peso(total);
+  if(!(t>0)){
+    el.textContent='Agrega productos para ver el cobro sugerido.';
+    return;
+  }
+  const charge=cardTerminalCharge(t);
+  const fee=peso(charge-t);
+  el.innerHTML=`Cobrar en terminal: <strong>${fmtMoney(charge)}</strong>
+    <span class="card-fee-detail">(orden ${fmtMoney(t)} + 4.5% = ${fmtMoney(fee)})</span>`;
+}
+
 export function updateCashUI(){
   const wrap=document.getElementById('cash-wrap');
-  if(!wrap) return;
+  const cardWrap=document.getElementById('card-fee-wrap');
   const isCash=state.payMethod==='Efectivo';
-  wrap.classList.toggle('hidden', !isCash);
-  if(!isCash) return;
-  renderCashResult(document.getElementById('cash-result'), cartTotal(), parsePesoOptional(document.getElementById('f-recibido')?.value));
+  const isCard=state.payMethod==='Tarjeta';
+  if(wrap) wrap.classList.toggle('hidden', !isCash);
+  if(cardWrap){
+    cardWrap.classList.toggle('hidden', !isCard);
+    if(isCard) renderCardFeeHint(document.getElementById('card-fee-hint'), cartTotal());
+  }
+  if(isCash){
+    renderCashResult(document.getElementById('cash-result'), cartTotal(), parsePesoOptional(document.getElementById('f-recibido')?.value));
+  }
 }
 
 export function applyCashQuick(inputId, amount){

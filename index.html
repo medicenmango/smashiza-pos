@@ -438,9 +438,59 @@
   <!-- ── NUEVA ORDEN ── -->
   <div id="tab-nueva-orden" class="tab-content hidden">
     <div class="orden-layout">
+      <div class="orden-menu-col">
+        <div class="card menu-picker-card">
+          <h3 class="card-title"><span class="pixel-icon">📌</span> SELECCIONAR PRODUCTOS</h3>
+          <input type="text" id="menu-search" class="pixel-input menu-search-bar" placeholder="🔍 Buscar producto..."/>
+          <div class="menu-categories" id="menu-cat-btns"></div>
+          <div id="menu-grid" class="menu-grid"></div>
+        </div>
+      </div>
+      <div class="orden-ticket-col">
+        <div class="card ticket-card">
+          <h3 class="card-title"><span class="pixel-icon">🧾</span> TICKET <span class="orden-num-badge" id="orden-num-badge">#—</span></h3>
+          <div id="ticket-items" class="ticket-items"><div class="empty-ticket">Sin productos</div></div>
+          <div class="ticket-subtotal-row"><span>Subtotal</span><span id="ticket-subtotal">$0</span></div>
+          <div id="ticket-ajuste-display" class="ticket-ajuste-display"></div>
+          <div class="ticket-total-row"><span>TOTAL</span><span id="ticket-total" class="ticket-total">$0</span></div>
+          <div class="ticket-pay">
+            <div class="form-group full">
+              <label>MÉTODO DE PAGO</label>
+              <div class="pay-toggle">
+                <button class="pay-opt active" data-pay="Efectivo">💵 Efectivo</button>
+                <button class="pay-opt" data-pay="Transferencia">📱 Transferencia</button>
+                <button class="pay-opt" data-pay="Tarjeta">💳 Tarjeta</button>
+              </div>
+            </div>
+            <div class="form-group full" id="cash-wrap">
+              <label>¿CON CUÁNTO PAGA?</label>
+              <div class="cash-quick">
+                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="200">$200</button>
+                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="500">$500</button>
+                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="exact">EXACTO</button>
+              </div>
+              <input type="number" id="f-recibido" class="pixel-input" min="0" step="1" placeholder="Ej: 500"/>
+              <div id="cash-result" class="cash-result"></div>
+            </div>
+            <div class="form-group full hidden" id="card-fee-wrap">
+              <label>COBRAR EN TERMINAL (ayuda)</label>
+              <div id="card-fee-hint" class="card-fee-hint">—</div>
+              <p class="setup-hint" style="margin:.35rem 0 0">Solo referencia (+4.5%). El <strong>TOTAL</strong> de la orden no cambia.</p>
+            </div>
+          </div>
+          <div class="ticket-actions">
+            <button class="btn-primary ticket-primary" id="btn-guardar-orden">► MANDAR COMANDA</button>
+            <div class="ticket-secondary-row">
+              <button type="button" class="btn-secondary" id="btn-copiar-ticket">📋 COPIAR PARA CLIENTE</button>
+              <button class="btn-secondary" id="btn-limpiar-orden">✕ LIMPIAR</button>
+            </div>
+            <p class="setup-hint ticket-brand-hint">El recibo usa logo, nombre y teléfono de <strong>NEGOCIO</strong> + pie “powered by Smashiza”. Pégalo en WhatsApp.</p>
+          </div>
+        </div>
+      </div>
       <div class="orden-form-col">
         <div class="card orden-card">
-          <h2 class="card-title"><span class="pixel-icon">🍔</span> NUEVA ORDEN <span class="orden-num-badge" id="orden-num-badge">#—</span></h2>
+          <h2 class="card-title"><span class="pixel-icon">🍔</span> DATOS DE LA ORDEN</h2>
           <div class="form-grid">
             <div class="form-group" style="position:relative">
               <label>CLIENTE</label>
@@ -484,49 +534,6 @@
           <div id="live-orders" class="live-queue"><div class="empty-list">Sin órdenes activas hoy</div></div>
         </div>
       </div>
-      <div class="orden-menu-col">
-        <div class="card menu-picker-card">
-          <h3 class="card-title"><span class="pixel-icon">📌</span> SELECCIONAR PRODUCTOS</h3>
-          <input type="text" id="menu-search" class="pixel-input menu-search-bar" placeholder="🔍 Buscar producto..."/>
-          <div class="menu-categories" id="menu-cat-btns"></div>
-          <div id="menu-grid" class="menu-grid"></div>
-        </div>
-        <div class="card ticket-card">
-          <h3 class="card-title"><span class="pixel-icon">🧾</span> TICKET</h3>
-          <div id="ticket-items" class="ticket-items"><div class="empty-ticket">Sin productos</div></div>
-          <div class="ticket-subtotal-row"><span>Subtotal</span><span id="ticket-subtotal">$0</span></div>
-          <div id="ticket-ajuste-display" class="ticket-ajuste-display"></div>
-          <div class="ticket-total-row"><span>TOTAL</span><span id="ticket-total" class="ticket-total">$0</span></div>
-          <div class="ticket-pay">
-            <div class="form-group full">
-              <label>MÉTODO DE PAGO</label>
-              <div class="pay-toggle">
-                <button class="pay-opt active" data-pay="Efectivo">💵 Efectivo</button>
-                <button class="pay-opt" data-pay="Transferencia">📱 Transferencia</button>
-                <button class="pay-opt" data-pay="Tarjeta">💳 Tarjeta</button>
-              </div>
-            </div>
-            <div class="form-group full" id="cash-wrap">
-              <label>¿CON CUÁNTO PAGA?</label>
-              <div class="cash-quick">
-                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="200">$200</button>
-                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="500">$500</button>
-                <button type="button" class="btn-secondary btn-inline cash-quick-btn" data-cash="exact">EXACTO</button>
-              </div>
-              <input type="number" id="f-recibido" class="pixel-input" min="0" step="1" placeholder="Ej: 500"/>
-              <div id="cash-result" class="cash-result"></div>
-            </div>
-          </div>
-          <div class="ticket-actions">
-            <div class="ticket-btn-row">
-              <button class="btn-primary" id="btn-guardar-orden">► MANDAR COMANDA</button>
-              <button type="button" class="btn-secondary" id="btn-copiar-ticket">📋 COPIAR PARA CLIENTE</button>
-            </div>
-            <p class="setup-hint ticket-brand-hint">El recibo usa logo, nombre y teléfono de <strong>NEGOCIO</strong> + pie “powered by Smashiza”. Pégalo en WhatsApp.</p>
-            <button class="btn-secondary" id="btn-limpiar-orden">✕ LIMPIAR</button>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -541,8 +548,33 @@
       <div class="qs-item"><span class="qs-label">ENTREGADAS</span><span class="qs-val" id="qs-entregadas">0</span></div>
     </div>
     <div class="ordenes-header">
-      <div class="filter-bar">
-        <div class="filter-group"><label class="filter-label">FECHA</label><input type="date" id="filter-fecha" class="pixel-input date-filter"/></div>
+      <div class="dash-filter-bar" id="ordenes-date-filter">
+        <div class="dash-range-top">
+          <div class="dash-range-info">
+            <span class="filter-label">📅 PERÍODO ACTIVO</span>
+            <span class="dash-range-label" id="ord-range-label">Hoy</span>
+          </div>
+          <div class="dash-btn-row">
+            <button class="btn-secondary btn-inline" id="btn-ord-hoy">HOY</button>
+            <button class="btn-secondary btn-inline" id="btn-ord-semana">7 DÍAS</button>
+            <button class="btn-secondary btn-inline" id="btn-ord-mes">ESTE MES</button>
+            <button class="btn-secondary btn-inline" id="btn-ord-todo">TODO</button>
+            <button class="btn-secondary btn-inline" id="btn-ord-toggle-cal">📅 SELECCIONAR FECHAS ▼</button>
+          </div>
+        </div>
+        <div id="ord-cal-collapse" class="hidden">
+          <div class="cal-wrap" style="margin-top:.75rem">
+            <button class="cal-nav" id="btn-ord-cal-prev">◀</button>
+            <div class="cal-months" id="ord-cal-months-wrap">
+              <div id="ord-cal-left" class="cal-month"></div>
+              <div id="ord-cal-right" class="cal-month"></div>
+            </div>
+            <button class="cal-nav" id="btn-ord-cal-next">▶</button>
+          </div>
+          <p class="table-hint" style="margin-top:.4rem">1er clic = inicio del rango · 2do clic = fin · los puntos 🟢 indican días con órdenes</p>
+        </div>
+      </div>
+      <div class="filter-bar" style="margin-top:.65rem">
         <div class="filter-group"><label class="filter-label">ESTADO</label>
           <select id="filter-estado" class="pixel-input">
             <option value="">TODOS</option>
@@ -551,7 +583,6 @@
         </div>
         <div class="filter-group"><label class="filter-label">🔍 BUSCAR</label><input type="text" id="filter-buscar" class="pixel-input" placeholder="Cliente, #orden, producto..."/></div>
         <div class="filter-actions">
-          <button class="btn-secondary btn-inline" id="btn-clear-date">📅 VER TODO</button>
           <button class="btn-secondary btn-inline" id="btn-reload">⟳ RECARGAR</button>
         </div>
       </div>
@@ -733,6 +764,11 @@
         </div>
         <input type="number" id="edit-recibido" class="pixel-input" min="0" step="1" placeholder="Ej: 500"/>
         <div id="edit-cash-result" class="cash-result"></div>
+      </div>
+      <div class="form-group hidden" id="edit-card-fee-wrap">
+        <label>💳 COBRAR EN TERMINAL (ayuda)</label>
+        <div id="edit-card-fee-hint" class="card-fee-hint">—</div>
+        <p class="setup-hint" style="margin:.35rem 0 0">Solo referencia (+4.5%). El TOTAL de la orden no cambia.</p>
       </div>
       <div class="form-group"><label>🔄 ESTADO</label><select id="detail-estado-select" class="pixel-input"></select></div>
       <div class="form-group full"><label>💬 COMENTARIOS</label><textarea id="edit-comentarios" class="pixel-input" rows="2"></textarea></div>

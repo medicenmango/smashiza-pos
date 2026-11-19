@@ -4,26 +4,41 @@ import { MENU } from '../domain/menu.js';
 import { cashBreakdown, todayCashInDrawer, orderItems, setOrderItems } from '../domain/orders.js';
 import { refreshDashboard } from './dashboard.js';
 import { notifyInventoryResult, renderInventory } from './inventario.js';
-import { renderCashResult, applyCashQuick } from './nueva-orden.js';
+import { renderCashResult, applyCashQuick, renderCardFeeHint } from './nueva-orden.js';
 import { collectEditOrderTicket, copyTicketForClient } from './ticket.js';
 import { state } from '../state.js';
 import { canReload, reload, saveOrder, deleteOrder } from '../storage/index.js';
 import { relTime } from '../ui/clock.js';
+import { bindDateRangeFilter, createDateRange, filterByDateRange } from '../ui/date-range.js';
 import { toast } from '../ui/toast.js';
 import { toYmd, toHms, fmtMoney, peso, parsePesoOptional, today, escHtml } from '../utils/format.js';
 
-export function updateEditCashUI(){
-  const wrap=document.getElementById('edit-cash-wrap');
-  const pago=document.getElementById('edit-pago');
-  if(!wrap||!pago) return;
-  const isCash=pago.value==='Efectivo';
-  wrap.classList.toggle('hidden', !isCash);
-  if(!isCash) return;
+/** Mismo panel de fechas que el dashboard (HOY / 7 DÍAS / mes / TODO / calendario). */
+export const ordersRange=createDateRange(true);
+
+function editModalTotal(){
   const modal=document.getElementById('modal-detail');
   const cart=modal?._editCart||[];
   const ajuste=parseFloat(document.getElementById('edit-ajuste')?.value)||0;
-  const total=peso(Math.max(0, cart.reduce((s,c)=>s+c.price*c.qty,0)+ajuste));
-  renderCashResult(document.getElementById('edit-cash-result'), total, parsePesoOptional(document.getElementById('edit-recibido')?.value));
+  return peso(Math.max(0, cart.reduce((s,c)=>s+c.price*c.qty,0)+ajuste));
+}
+
+export function updateEditCashUI(){
+  const wrap=document.getElementById('edit-cash-wrap');
+  const cardWrap=document.getElementById('edit-card-fee-wrap');
+  const pago=document.getElementById('edit-pago');
+  if(!pago) return;
+  const isCash=pago.value==='Efectivo';
+  const isCard=pago.value==='Tarjeta';
+  const total=editModalTotal();
+  if(wrap) wrap.classList.toggle('hidden', !isCash);
+  if(cardWrap){
+    cardWrap.classList.toggle('hidden', !isCard);
+    if(isCard) renderCardFeeHint(document.getElementById('edit-card-fee-hint'), total);
+  }
+  if(isCash){
+    renderCashResult(document.getElementById('edit-cash-result'), total, parsePesoOptional(document.getElementById('edit-recibido')?.value));
+  }
 }
 
 export async function reloadData(){
@@ -260,12 +275,10 @@ export function renderOrdersStats(){
 export function renderOrdersTable(){
   renderOrdersStats();
   const tbody=document.getElementById('ordenes-tbody');
-  const fecha =document.getElementById('filter-fecha').value;
   const estado=document.getElementById('filter-estado').value;
   const buscar=(document.getElementById('filter-buscar')?.value||'').trim().toLowerCase();
 
-  let orders=[...state.allOrders];
-  if(fecha)  orders=orders.filter(o=>String(o['Fecha']).startsWith(fecha));
+  let orders=filterByDateRange(state.allOrders, ordersRange);
   if(estado) orders=orders.filter(o=>o['Estado']===estado);
   if(buscar) orders=orders.filter(o=>
     (o['Cliente']||'').toLowerCase().includes(buscar)||
@@ -313,13 +326,27 @@ export function renderOrdersTable(){
 }
 
 export function initOrdersFilter(){
-  document.getElementById('filter-fecha').value=today();
-  ['filter-fecha','filter-estado','filter-buscar'].forEach(id=>{
+  bindDateRangeFilter({
+    range:ordersRange,
+    ids:{
+      label:'ord-range-label',
+      hoy:'btn-ord-hoy',
+      semana:'btn-ord-semana',
+      mes:'btn-ord-mes',
+      todo:'btn-ord-todo',
+      toggle:'btn-ord-toggle-cal',
+      collapse:'ord-cal-collapse',
+      prev:'btn-ord-cal-prev',
+      next:'btn-ord-cal-next',
+      months:'ord-cal-months-wrap',
+      left:'ord-cal-left',
+      right:'ord-cal-right',
+    },
+    onChange:renderOrdersTable,
+  });
+  ['filter-estado','filter-buscar'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){ el.addEventListener('input',renderOrdersTable); el.addEventListener('change',renderOrdersTable); }
   });
-  document.getElementById('btn-reload').addEventListener('click',reloadData);
-  document.getElementById('btn-clear-date').addEventListener('click',()=>{
-    document.getElementById('filter-fecha').value=''; renderOrdersTable();
-  });
+  document.getElementById('btn-reload')?.addEventListener('click',reloadData);
 }
