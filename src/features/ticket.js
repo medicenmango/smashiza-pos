@@ -1,5 +1,6 @@
 import { activeBranding, fontStack, normalizeFont } from '../domain/branding.js';
-import { cartSubtotal, cartTotal } from './nueva-orden.js';
+import { orderTax, formatIvaRate } from '../domain/orders.js';
+import { cartSubtotal, cartTotals } from './nueva-orden.js';
 import { state } from '../state.js';
 import { toast } from '../ui/toast.js';
 import { fmtMoney, peso } from '../utils/format.js';
@@ -29,6 +30,7 @@ export function wrapCanvasText(ctx, text, maxW){
 
 export function collectNewOrderTicket(){
   if(!state.cart.length) return null;
+  const tax=cartTotals();
   return {
     num:(document.getElementById('orden-num-badge')?.textContent||'').replace(/^#/,''),
     cliente:document.getElementById('f-cliente')?.value.trim()||'',
@@ -37,7 +39,9 @@ export function collectNewOrderTicket(){
     lines:state.cart.map(c=>({name:c.item.name, qty:c.qty, sub:c.item.price*c.qty})),
     subtotal:cartSubtotal(),
     ajuste:state.ajuste||0,
-    total:cartTotal(),
+    ivaRate:tax.rate,
+    iva:tax.iva,
+    total:tax.total,
   };
 }
 
@@ -47,6 +51,7 @@ export function collectEditOrderTicket(){
   if(!cart.length) return null;
   const ajuste=parseFloat(document.getElementById('edit-ajuste')?.value)||0;
   const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const tax=orderTax(sub, ajuste, modal?._ivaRate||0);
   return {
     num:(document.getElementById('detail-num')?.textContent||'').replace(/^#/,''),
     cliente:document.getElementById('edit-cliente')?.value.trim()||'',
@@ -55,7 +60,9 @@ export function collectEditOrderTicket(){
     lines:cart.map(c=>({name:c.name, qty:c.qty, sub:c.price*c.qty})),
     subtotal:peso(sub),
     ajuste,
-    total:peso(Math.max(0, sub+ajuste)),
+    ivaRate:tax.rate,
+    iva:tax.iva,
+    total:tax.total,
   };
 }
 
@@ -133,6 +140,13 @@ export function layoutTicket(ctx, data, W, pad, brand, logoImg){
     add('sum', {
       label:data.ajuste<0?'Descuento':'Cargo extra',
       value:(data.ajuste>0?'+':'')+fmtMoney(data.ajuste),
+      h:22
+    });
+  }
+  if((Number(data.ivaRate)||0)>0 || (Number(data.iva)||0)>0){
+    add('sum', {
+      label:`IVA ${formatIvaRate(data.ivaRate)}%`,
+      value:fmtMoney(data.iva||0),
       h:22
     });
   }

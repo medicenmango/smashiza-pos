@@ -1,7 +1,7 @@
 import { ESTADOS } from '../constants.js';
 import { snapshotOrderInv, syncOrderInventory } from '../domain/inventory.js';
 import { MENU } from '../domain/menu.js';
-import { cashBreakdown, todayCashInDrawer, orderItems, setOrderItems } from '../domain/orders.js';
+import { cashBreakdown, todayCashInDrawer, orderItems, setOrderItems, orderTax, formatIvaRate } from '../domain/orders.js';
 import { refreshDashboard } from './dashboard.js';
 import { notifyInventoryResult, renderInventory } from './inventario.js';
 import { renderCashResult, applyCashQuick, renderCardFeeHint } from './nueva-orden.js';
@@ -11,16 +11,31 @@ import { canReload, reload, saveOrder, deleteOrder } from '../storage/index.js';
 import { relTime } from '../ui/clock.js';
 import { bindDateRangeFilter, createDateRange, filterByDateRange } from '../ui/date-range.js';
 import { toast } from '../ui/toast.js';
-import { toYmd, toHms, fmtMoney, peso, parsePesoOptional, today, escHtml } from '../utils/format.js';
+import { toYmd, toHms, fmtMoney, parsePesoOptional, today, escHtml } from '../utils/format.js';
 
 /** Mismo panel de fechas que el dashboard (HOY / 7 DÍAS / mes / TODO / calendario). */
 export const ordersRange=createDateRange(true);
 
-function editModalTotal(){
+function editBreakdown(){
   const modal=document.getElementById('modal-detail');
   const cart=modal?._editCart||[];
   const ajuste=parseFloat(document.getElementById('edit-ajuste')?.value)||0;
-  return peso(Math.max(0, cart.reduce((s,c)=>s+c.price*c.qty,0)+ajuste));
+  const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
+  return orderTax(sub, ajuste, modal?._ivaRate||0);
+}
+
+function editModalTotal(){
+  return editBreakdown().total;
+}
+
+function paintEditIva(tax){
+  const row=document.getElementById('edit-iva-row');
+  const label=document.getElementById('edit-iva-label');
+  const amount=document.getElementById('edit-iva');
+  const show=tax.rate>0;
+  if(row) row.classList.toggle('hidden', !show);
+  if(label) label.textContent=show?`IVA ${formatIvaRate(tax.rate)}%`:'IVA';
+  if(amount) amount.textContent=fmtMoney(tax.iva);
 }
 
 export function updateEditCashUI(){
@@ -94,6 +109,7 @@ export function openOrderDetail(numOrden){
   const modal=document.getElementById('modal-detail');
   modal._editCart=editCart;
   modal._numOrden=numOrden;
+  modal._ivaRate=Number(order['Iva_Tasa'])||0;
 
   // Header
   document.getElementById('detail-num').textContent  =`#${String(order['Num_Orden']||'').padStart(4,'0')}`;
@@ -131,12 +147,13 @@ export function refreshEditCart(){
   const el=document.getElementById('edit-cart-items');
   el.innerHTML=buildEditCartHtml(editCart);
 
-  // Recalc total
-  const ajuste=parseFloat(document.getElementById('edit-ajuste').value)||0;
+  const tax=editBreakdown();
   const sub=editCart.reduce((s,c)=>s+c.price*c.qty,0);
-  const total=peso(Math.max(0,sub+ajuste));
   document.getElementById('edit-subtotal').textContent=fmtMoney(sub);
-  document.getElementById('edit-total-calc').textContent=fmtMoney(total);
+  paintEditIva(tax);
+  document.getElementById('edit-total-calc').textContent=fmtMoney(tax.total);
+  const big=document.getElementById('edit-total-calc-display');
+  if(big) big.textContent=fmtMoney(tax.total);
   updateEditCashUI();
 
   // Bindings
@@ -210,14 +227,16 @@ export function initOrderDetailModal(){
     const prev=snapshotOrderInv(order);
     const editCart=modal._editCart||[];
     const ajuste=parseFloat(document.getElementById('edit-ajuste').value)||0;
-    const sub=editCart.reduce((s,c)=>s+c.price*c.qty,0);
+    const tax=editBreakdown();
 
     order['Cliente']    =document.getElementById('edit-cliente').value.trim();
     order['Direccion']  =document.getElementById('edit-dir').value.trim();
     order['Metodo_Pago']=document.getElementById('edit-pago').value;
     order['Comentarios']=document.getElementById('edit-comentarios').value.trim();
     order['Ajuste']     =ajuste;
-    order['Total']      =peso(Math.max(0,sub+ajuste));
+    order['Iva_Tasa']   =tax.rate;
+    order['Iva']        =tax.iva;
+    order['Total']      =tax.total;
     if(order['Metodo_Pago']==='Efectivo'){
       const cash=cashBreakdown(order['Total'], parsePesoOptional(document.getElementById('edit-recibido')?.value));
       if(cash.empty){ order['Recibido']=''; order['Cambio']=''; }
@@ -302,7 +321,11 @@ export function renderOrdersTable(){
         </td>
         <td><div class="col-cliente-name">${escHtml(o['Cliente']||'')}</div>${com}</td>
         <td class="col-productos">${escHtml(o['Productos']||'')}</td>
-        <td class="col-total">${fmtMoney(o['Total']||0)}</td>
+        <td class="col-total">${fmtMoney(o['Total']||0)}${
+          (Number(o['Iva_Tasa'])||0)>0
+            ? `<div class="row-comment">IVA ${escHtml(formatIvaRate(o['Iva_Tasa']))}% · ${fmtMoney(o['Iva']||0)}</div>`
+            : ''
+        }</td>
         <td>${escHtml(o['Metodo_Pago']||'')}${
           o['Metodo_Pago']==='Efectivo' && parsePesoOptional(o['Cambio'])!=null
             ? `<div class="cash-badge">Cambio ${fmtMoney(parsePesoOptional(o['Cambio']))}</div>` : ''

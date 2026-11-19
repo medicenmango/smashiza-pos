@@ -1,6 +1,6 @@
 import { syncOrderInventory } from '../domain/inventory.js';
 import { CAT_LABELS, MENU, getCatLabel } from '../domain/menu.js';
-import { cashBreakdown, orderProductSummary, getNextOrderNum, setOrderItems } from '../domain/orders.js';
+import { cashBreakdown, orderProductSummary, getNextOrderNum, setOrderItems, orderTax, formatIvaRate } from '../domain/orders.js';
 import { refreshDashboard } from './dashboard.js';
 import { notifyInventoryResult, renderInventory } from './inventario.js';
 import { openOrderDetail, badgeClass } from './ordenes.js';
@@ -222,7 +222,19 @@ export function changeQty(itemId,delta){
 
 export function cartSubtotal(){ return state.cart.reduce((s,c)=>s+c.item.price*c.qty,0); }
 
-export function cartTotal()   { return peso(Math.max(0,cartSubtotal()+state.ajuste)); }
+export function cartTotals(){ return orderTax(cartSubtotal(), state.ajuste, state.ivaRate); }
+
+export function cartTotal(){ return cartTotals().total; }
+
+function paintIvaRow(rowId, labelId, amountId, tax){
+  const row=document.getElementById(rowId);
+  const label=document.getElementById(labelId);
+  const amount=document.getElementById(amountId);
+  const show=!!tax && tax.rate>0;
+  if(row) row.classList.toggle('hidden', !show);
+  if(label) label.textContent=show?`IVA ${formatIvaRate(tax.rate)}%`:'IVA';
+  if(amount) amount.textContent=fmtMoney(tax?tax.iva:0);
+}
 
 export function renderCashResult(el, total, recibidoOpt){
   if(!el) return;
@@ -285,7 +297,8 @@ export function applyCashQuick(inputId, amount){
       const modal=document.getElementById('modal-detail');
       const cart=modal?._editCart||[];
       const ajuste=parseFloat(document.getElementById('edit-ajuste')?.value)||0;
-      return peso(Math.max(0, cart.reduce((s,c)=>s+c.price*c.qty,0)+ajuste));
+      const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
+      return orderTax(sub, ajuste, modal?._ivaRate||0).total;
     })();
     inp.value=String(total);
   } else inp.value=String(amount);
@@ -306,6 +319,7 @@ export function renderCart(){
     if(ajEl){ ajEl.textContent=''; ajEl.className='ticket-ajuste-display'; }
     el.innerHTML='<div class="empty-ticket">Sin productos</div>';
     subEl&&(subEl.textContent='$0'); totEl.textContent='$0';
+    paintIvaRow('ticket-iva-row','ticket-iva-label','ticket-iva', null);
     updateCashUI();
     return;
   }
@@ -328,7 +342,9 @@ export function renderCart(){
     else if(aj<0){ ajEl.textContent=`Descuento: ${fmtMoney(aj)}`; ajEl.className='ticket-ajuste-display ajuste-neg'; }
     else { ajEl.textContent=`Cargo extra: +${fmtMoney(aj)}`; ajEl.className='ticket-ajuste-display ajuste-pos'; }
   }
-  totEl.textContent=fmtMoney(cartTotal());
+  const tax=cartTotals();
+  paintIvaRow('ticket-iva-row','ticket-iva-label','ticket-iva', tax);
+  totEl.textContent=fmtMoney(tax.total);
   el.querySelectorAll('.qty-btn').forEach(btn=>btn.addEventListener('click',()=>changeQty(btn.dataset.id,parseInt(btn.dataset.delta))));
   el.querySelectorAll('.btn-del-item').forEach(btn=>btn.addEventListener('click',()=>removeFromCart(btn.dataset.id)));
   updateCashUI();
@@ -378,6 +394,7 @@ export async function submitOrder(){
 
   const now=new Date();
   const numOrden=getNextOrderNum(state.allOrders);
+  const tax=cartTotals();
   const newRow={
     Num_Orden:numOrden,
     Fecha:fmtDate(now),
@@ -386,7 +403,8 @@ export async function submitOrder(){
     Direccion:document.getElementById('f-direccion').value.trim(),
     Productos:'', Cantidades:'',
     Comentarios:document.getElementById('f-comentarios').value.trim(),
-    Metodo_Pago:state.payMethod, Ajuste:state.ajuste||0, Total:cartTotal(),
+    Metodo_Pago:state.payMethod, Ajuste:state.ajuste||0,
+    Iva_Tasa:tax.rate, Iva:tax.iva, Total:tax.total,
     Recibido:'', Cambio:'',
     Estado:document.getElementById('f-estado').value,
   };

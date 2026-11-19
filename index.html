@@ -175,6 +175,15 @@
           </div>
           <button type="submit" class="btn-primary" id="biz-save-brand">► GUARDAR LOOK</button>
         </form>
+        <div id="biz-iva-block" style="max-width:420px;margin-top:1.25rem;padding-top:1rem;border-top:1px dashed var(--border)">
+          <h2 class="card-title"><span class="pixel-icon">％</span> IVA</h2>
+          <p class="setup-hint">Tasa de este negocio. 0 = sin IVA. La comida en México suele estar exenta: no se pone 16% por defecto. Las órdenes ya cobradas conservan la tasa con la que se guardaron.</p>
+          <div class="form-group">
+            <label for="biz-iva-rate">TASA (%)</label>
+            <input type="number" id="biz-iva-rate" class="pixel-input" min="0" max="100" step="0.01" value="0"/>
+          </div>
+          <button type="button" class="btn-primary" id="biz-save-iva">► GUARDAR IVA</button>
+        </div>
         <div id="biz-team-block" class="hidden" style="max-width:420px;margin-top:1.75rem;padding-top:1rem;border-top:1px dashed var(--border)">
           <h2 class="card-title"><span class="pixel-icon">👥</span> EQUIPO</h2>
           <p class="setup-hint">Crea un cajero con <strong>usuario + contraseña</strong> (sin correo). Entra al POS con ese usuario. Rol cajero: órdenes sí; menú/costos/inventario/marca no.</p>
@@ -486,6 +495,7 @@
           <div id="ticket-items" class="ticket-items"><div class="empty-ticket">Sin productos</div></div>
           <div class="ticket-subtotal-row"><span>Subtotal</span><span id="ticket-subtotal">$0</span></div>
           <div id="ticket-ajuste-display" class="ticket-ajuste-display"></div>
+          <div class="ticket-subtotal-row hidden" id="ticket-iva-row"><span id="ticket-iva-label">IVA</span><span id="ticket-iva">$0</span></div>
           <div class="ticket-total-row"><span>TOTAL</span><span id="ticket-total" class="ticket-total">$0</span></div>
           <div class="ticket-pay">
             <div class="form-group full">
@@ -814,6 +824,7 @@
       <div class="detail-section-title">🍔 PRODUCTOS EN LA ORDEN</div>
       <div id="edit-cart-items" class="ticket-items" style="max-height:160px;overflow-y:auto"></div>
       <div class="ticket-subtotal-row"><span>Subtotal</span><span id="edit-subtotal">$0</span></div>
+      <div class="ticket-subtotal-row hidden" id="edit-iva-row"><span id="edit-iva-label">IVA</span><span id="edit-iva">$0</span></div>
       <div class="ticket-total-row" style="margin-bottom:0"><span>TOTAL</span><span id="edit-total-calc" class="ticket-total">$0</span></div>
     </div>
 

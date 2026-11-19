@@ -95,6 +95,7 @@ function mapBusinessRow(r){
     colorBg:r.color_bg||'#0d0820',
     fontFamily:r.font_family||'retro',
     fontColor:r.font_color||'#ffd700',
+    ivaRate:Number(r.iva_rate)||0,
     suspended:r.suspended===true,
   };
 }
@@ -113,6 +114,7 @@ function applyBusiness(b){
   state.colorBg=b.colorBg||'#0d0820';
   state.fontFamily=b.fontFamily||'retro';
   state.fontColor=b.fontColor||'#ffd700';
+  state.ivaRate=Number(b.ivaRate)||0;
   state.businessSuspended=b.suspended===true;
   storeBusinessId(b.id);
 }
@@ -132,6 +134,7 @@ function clearBusinessState(){
   state.colorBg='';
   state.fontFamily='retro';
   state.fontColor='#ffd700';
+  state.ivaRate=0;
   state.businessSuspended=false;
   storeBusinessId('');
 }
@@ -160,6 +163,7 @@ export function getActiveBusiness(){
       ticketName:state.ticketName, ticketTagline:state.ticketTagline,
       phone:state.phone, ticketFooter:state.ticketFooter, logoPath:state.logoPath,
       colorPrimary:state.colorPrimary, colorSecondary:state.colorSecondary, colorBg:state.colorBg,
+      ivaRate:Number(state.ivaRate)||0,
     }
     : null;
 }
@@ -314,6 +318,18 @@ export async function updateMyBusinessTheme({ colorPrimary, colorSecondary, colo
       fontColor:state.fontColor,
     };
   }
+}
+
+export async function updateMyBusinessIva(ivaRate){
+  const bid=requireBusinessId();
+  const rate=Math.min(100, Math.max(0, Math.round((Number(ivaRate)||0)*100)/100));
+  check(await db().rpc('update_my_business_iva', {
+    p_business_id:bid,
+    p_iva_rate:rate,
+  }));
+  state.ivaRate=rate;
+  const i=state.businesses.findIndex(b=>b.id===bid);
+  if(i>=0) state.businesses[i]={ ...state.businesses[i], ivaRate:rate };
 }
 
 export async function uploadBusinessLogo(file){
@@ -505,6 +521,8 @@ function orderToDb(o){
     metodo_pago:str(o['Metodo_Pago'])||'Efectivo',
     ajuste:num(o['Ajuste']),
     total:num(o['Total']),
+    iva_rate:num(o['Iva_Tasa']),
+    iva_amount:num(o['Iva']),
     recibido:numOrNull(o['Recibido']),
     cambio:numOrNull(o['Cambio']),
     estado:str(o['Estado'])||'Pendiente',
@@ -529,6 +547,7 @@ function orderFromDb(r, items){
     Num_Orden:r.num, Fecha:r.fecha, Hora:r.hora,
     Cliente:r.cliente, Direccion:r.direccion, Comentarios:r.comentarios,
     Metodo_Pago:r.metodo_pago, Ajuste:Number(r.ajuste)||0, Total:Number(r.total)||0,
+    Iva_Tasa:Number(r.iva_rate)||0, Iva:Number(r.iva_amount)||0,
     Recibido:r.recibido??'', Cambio:r.cambio??'', Estado:r.estado,
   };
   if(r.client_id) o._cid=r.client_id;
@@ -854,6 +873,7 @@ async function cacheState(){
       ticketFooter:state.ticketFooter, logoPath:state.logoPath,
       colorPrimary:state.colorPrimary, colorSecondary:state.colorSecondary, colorBg:state.colorBg,
       fontFamily:state.fontFamily||'retro', fontColor:state.fontColor||'#ffd700',
+      ivaRate:Number(state.ivaRate)||0,
       businessSuspended:state.businessSuspended===true,
     }, 'state'));
   }catch(e){ console.warn('[Smashiza] no se pudo guardar la copia local', e); }
@@ -892,6 +912,7 @@ export async function loadFromCache(){
     state.colorBg=c.colorBg||'#0d0820';
     state.fontFamily=c.fontFamily||'retro';
     state.fontColor=c.fontColor||'#ffd700';
+    state.ivaRate=Number(c.ivaRate)||0;
     state.businessSuspended=c.businessSuspended===true;
   }
   saved=Object.fromEntries(Object.entries(c.saved||{}).map(([t,entries])=>[t,new Map(entries)]));
