@@ -3,7 +3,7 @@
    Permite uso offline básico
 ════════════════════════════════════════ */
 
-const CACHE_NAME = 'smashiza-pos-v39';
+const CACHE_NAME = 'smashiza-pos-v40';
 
 const ASSETS = [
   './',
@@ -25,6 +25,7 @@ const ASSETS = [
   './src/domain/inventory.js',
   './src/domain/branding.js',
   './src/domain/cash.js',
+  './src/domain/ready.js',
   './src/storage/index.js',
   './src/storage/events.js',
   './src/storage/excel.js',
@@ -42,6 +43,7 @@ const ASSETS = [
   './src/features/analisis.js',
   './src/features/negocio.js',
   './src/features/caja.js',
+  './src/features/ready-banner.js',
   './manifest.json',
   './demo-data.js',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',

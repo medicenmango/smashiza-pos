@@ -79,12 +79,14 @@ export function layoutTicket(ctx, data, W, pad, brand, logoImg){
   const rows=[];
   const add=(kind, payload)=>rows.push({kind, ...payload});
   if(logoImg){
-    const maxH=64, maxW=inner;
+    const maxH=72, maxW=inner;
     const scale=Math.min(maxW/logoImg.width, maxH/logoImg.height, 1);
-    add('logo', {img:logoImg, w:logoImg.width*scale, h:logoImg.height*scale+8});
+    add('logo', {img:logoImg, w:logoImg.width*scale, h:logoImg.height*scale+10});
   }
+  // Nombre comercial del tenant (Smashiza u otro); nunca hardcodear otra marca.
+  const displayName=(brand.name||'MI NEGOCIO').trim()||'MI NEGOCIO';
   ctx.font=title;
-  const nameLines=wrapCanvasText(ctx, (brand.name||'MI NEGOCIO').toUpperCase(), inner);
+  const nameLines=wrapCanvasText(ctx, displayName.toUpperCase(), inner);
   nameLines.forEach((text,i)=>add(i===0?'title':'sub', {text, h:i===0?28:22}));
   if(brand.tagline){
     ctx.font=small;
@@ -93,6 +95,11 @@ export function layoutTicket(ctx, data, W, pad, brand, logoImg){
   if(brand.phone){
     ctx.font=small;
     add('meta', {text:'Tel: '+brand.phone, h:20});
+  }
+  const num=String(data.num||'').replace(/^#/,'').trim();
+  if(num){
+    ctx.font=small;
+    add('num', {text:'Orden #'+String(num).padStart(4,'0'), h:22});
   }
   add('gap', {h:10});
   ctx.font=small;
@@ -147,34 +154,41 @@ export async function drawTicketBlob(data){
   canvas.width=W*scale; canvas.height=layout.height*scale;
   const ctx=canvas.getContext('2d');
   ctx.scale(scale, scale);
-  ctx.fillStyle='#12082a';
+  // Colores del tenant (tema); Smashiza sigue en su paleta por defecto.
+  const bg=brand.bg||'#12082a';
+  const accent=brand.primary||'#e63232';
+  const beige=brand.beige||'#f5e6c8';
+  const blue=brand.secondary||'#1a3bcc';
+  ctx.fillStyle=bg;
   ctx.fillRect(0,0,W,layout.height);
-  ctx.strokeStyle='#e63232';
+  ctx.strokeStyle=accent;
   ctx.lineWidth=3;
   ctx.strokeRect(8,8,W-16,layout.height-16);
   let y=pad;
   layout.rows.forEach(r=>{
     if(r.kind==='logo'){
-      const x=pad;
-      ctx.drawImage(r.img, x, y, r.w, r.h-8);
+      const x=pad+(layout.inner-r.w)/2;
+      ctx.drawImage(r.img, x, y, r.w, r.h-10);
     } else if(r.kind==='title'){
       ctx.fillStyle='#ffd700'; ctx.font=layout.fonts.title;
       ctx.fillText(r.text, pad, y+18);
     } else if(r.kind==='sub'){
-      ctx.fillStyle='#f5e6c8'; ctx.font=layout.fonts.small;
+      ctx.fillStyle=beige; ctx.font=layout.fonts.small;
       ctx.fillText(r.text, pad, y+14);
     } else if(r.kind==='num'){
-      ctx.fillStyle='#ff4444'; ctx.font=layout.fonts.small;
+      ctx.fillStyle=accent; ctx.font=layout.fonts.small;
       ctx.fillText(r.text, pad, y+14);
     } else if(r.kind==='meta'){
-      ctx.fillStyle='#d4c09a'; ctx.font=layout.fonts.small;
+      ctx.fillStyle=beige; ctx.globalAlpha=0.85;
+      ctx.font=layout.fonts.small;
       ctx.fillText(r.text, pad, y+14);
+      ctx.globalAlpha=1;
     } else if(r.kind==='rule'){
-      ctx.strokeStyle='#2a1a50'; ctx.lineWidth=1; ctx.setLineDash([5,5]);
+      ctx.strokeStyle=accent; ctx.globalAlpha=0.35; ctx.lineWidth=1; ctx.setLineDash([5,5]);
       ctx.beginPath(); ctx.moveTo(pad, y+8); ctx.lineTo(W-pad, y+8); ctx.stroke();
-      ctx.setLineDash([]);
+      ctx.setLineDash([]); ctx.globalAlpha=1;
     } else if(r.kind==='item'){
-      ctx.fillStyle='#f5e6c8'; ctx.font=layout.fonts.body;
+      ctx.fillStyle=beige; ctx.font=layout.fonts.body;
       ctx.fillText(r.text, pad, y+16);
       if(r.price){
         ctx.fillStyle='#00e676'; ctx.textAlign='right';
@@ -182,19 +196,21 @@ export async function drawTicketBlob(data){
         ctx.textAlign='left';
       }
     } else if(r.kind==='sum'){
-      ctx.fillStyle='#d4c09a'; ctx.font=layout.fonts.small;
+      ctx.fillStyle=beige; ctx.globalAlpha=0.85; ctx.font=layout.fonts.small;
       ctx.fillText(r.label, pad, y+14);
       ctx.textAlign='right'; ctx.fillText(r.value, W-pad, y+14); ctx.textAlign='left';
+      ctx.globalAlpha=1;
     } else if(r.kind==='total'){
       ctx.fillStyle='#ffd700'; ctx.font=layout.fonts.total;
       ctx.fillText(r.label, pad, y+26);
       ctx.textAlign='right'; ctx.fillText(r.value, W-pad, y+26); ctx.textAlign='left';
     } else if(r.kind==='foot'){
-      ctx.fillStyle='#4d7fff'; ctx.font=layout.fonts.small;
+      ctx.fillStyle=blue; ctx.font=layout.fonts.small;
       ctx.fillText(r.text, pad, y+14);
     } else if(r.kind==='powered'){
-      ctx.fillStyle='#8877aa'; ctx.font=layout.fonts.small;
+      ctx.fillStyle=beige; ctx.globalAlpha=0.55; ctx.font=layout.fonts.small;
       ctx.fillText(r.text, pad, y+14);
+      ctx.globalAlpha=1;
     }
     y+=r.h;
   });
@@ -218,9 +234,11 @@ export async function copyTicketForClient(data){
   if(!data){ toast('Agrega al menos un producto.','error'); return; }
   try{
     if(document.fonts?.ready) await document.fonts.ready;
+    const brand=activeBranding();
     const blob=await drawTicketBlob(data);
     await writePngToClipboard(blob);
-    toast('Ticket copiado. Pégalo en WhatsApp.','success');
+    const who=brand.name||'tu negocio';
+    toast(`Ticket de ${who} copiado. Pégalo en WhatsApp.`,'success');
   }catch(e){
     toast('No se pudo copiar la imagen. Prueba en Chrome o Edge.','error');
   }

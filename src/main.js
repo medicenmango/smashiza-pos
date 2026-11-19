@@ -9,6 +9,7 @@ import { initNav } from './features/nav.js';
 import { stampNewOrderWhen, initLiveOrderWhen, initClienteAutocomplete, renderMenuGrid, initMenuSearch, initCategoryBtns, initAjuste, initPayToggle, submitOrder, clearForm } from './features/nueva-orden.js';
 import { initOrderDetailModal, initOrdersFilter } from './features/ordenes.js';
 import { initNegocioTab } from './features/negocio.js';
+import { initReadyBanner } from './features/ready-banner.js';
 import { setupScreen, initChangeExcel } from './features/setup.js';
 import { collectNewOrderTicket, copyTicketForClient } from './features/ticket.js';
 import { startClock } from './ui/clock.js';
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   initAjuste();
   initNegocioTab();
   initCajaTab();
+  initReadyBanner();
   renderMenuGrid();
   renderMenuEditor();
   initDashboardFilter();
