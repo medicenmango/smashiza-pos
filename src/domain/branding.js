@@ -34,6 +34,27 @@ export const THEME_PRESETS = {
 
 export const DEFAULT_THEME = THEME_PRESETS.retro;
 
+/** Lista cerrada. No hay nombres libres ni archivos de fuente. */
+export const FONT_CHOICES = {
+  retro: { id:'retro', label:'Retro', stack:'"Press Start 2P", monospace' },
+  sans: { id:'sans', label:'Limpia', stack:'Roboto, "Segoe UI", sans-serif' },
+  rounded: { id:'rounded', label:'Redonda', stack:'Nunito, "Segoe UI", sans-serif' },
+};
+
+export const DEFAULT_FONT = 'retro';
+export const DEFAULT_FONT_COLOR = '#ffd700';
+
+const LOGIN_LOOK_KEY = 'smashiza_login_look';
+
+export function normalizeFont(v){
+  const s=String(v||'').trim().toLowerCase();
+  return FONT_CHOICES[s] ? s : DEFAULT_FONT;
+}
+
+export function fontStack(id){
+  return FONT_CHOICES[normalizeFont(id)].stack;
+}
+
 export function normalizeHex(v, fallback){
   const s=String(v||'').trim().toLowerCase();
   if(/^#[0-9a-f]{6}$/.test(s)) return s;
@@ -71,17 +92,23 @@ function darken(hex, t){ return mix(hex, '#000000', t); }
 function lighten(hex, t){ return mix(hex, '#ffffff', t); }
 
 export function activeTheme(){
+  const fontFamily=normalizeFont(state.fontFamily);
+  const fontColor=normalizeHex(state.fontColor, DEFAULT_FONT_COLOR);
   if(state.cloud && state.businessId){
     return {
       primary:normalizeHex(state.colorPrimary, DEFAULT_THEME.primary),
       secondary:normalizeHex(state.colorSecondary, DEFAULT_THEME.secondary),
       bg:normalizeHex(state.colorBg, DEFAULT_THEME.bg),
+      fontFamily,
+      fontColor,
     };
   }
   return {
     primary:DEFAULT_THEME.primary,
     secondary:DEFAULT_THEME.secondary,
     bg:DEFAULT_THEME.bg,
+    fontFamily:DEFAULT_FONT,
+    fontColor:DEFAULT_FONT_COLOR,
   };
 }
 
@@ -96,6 +123,8 @@ export function applyThemeColors(theme){
       ? DEFAULT_THEME.beige
       : lighten(mix(bg, primary, 0.15), 0.82);
 
+  const fontFamily=normalizeFont(t.fontFamily||state.fontFamily);
+  const fontColor=normalizeHex(t.fontColor||state.fontColor, DEFAULT_FONT_COLOR);
   const root=document.documentElement;
   const set=(k,v)=>root.style.setProperty(k, v);
 
@@ -113,6 +142,8 @@ export function applyThemeColors(theme){
   set('--bg-card', lighten(bg, 0.04));
   set('--bg-card2', lighten(bg, 0.1));
   set('--border', lighten(bg, 0.14));
+  set('--brand-font', fontStack(fontFamily));
+  set('--brand-ink', fontColor);
 
   const meta=document.querySelector('meta[name="theme-color"]');
   if(meta) meta.setAttribute('content', bg);
@@ -143,6 +174,8 @@ export function activeBranding(){
       poweredBy:POWERED_BY_SMASHIZA,
       isSmashiza,
       ...theme,
+      fontFamily:theme.fontFamily||DEFAULT_FONT,
+      fontColor:theme.fontColor||DEFAULT_FONT_COLOR,
       beige:beige||DEFAULT_THEME.beige,
     };
   }
@@ -158,8 +191,60 @@ export function activeBranding(){
     poweredBy:POWERED_BY_SMASHIZA,
     isSmashiza:true,
     ...theme,
+    fontFamily:DEFAULT_FONT,
+    fontColor:DEFAULT_FONT_COLOR,
     beige:DEFAULT_THEME.beige,
   };
+}
+
+function paintSetupLook(b){
+  const nameEl=document.getElementById('setup-brand-name');
+  const tagEl=document.getElementById('setup-brand-tag');
+  const logo=document.getElementById('setup-logo');
+  if(nameEl) nameEl.textContent=(b.name||'LA SMASHIZA').toUpperCase();
+  if(tagEl){
+    const tag=String(b.tagline||'').trim();
+    tagEl.textContent=tag.toUpperCase();
+    tagEl.classList.toggle('hidden', !tag);
+  }
+  if(logo){
+    if(b.logoUrl){
+      logo.src=b.logoUrl;
+      logo.alt=b.name||'';
+      logo.classList.remove('hidden');
+    } else {
+      logo.removeAttribute('src');
+      logo.classList.add('hidden');
+    }
+  }
+}
+
+function rememberLoginLook(b){
+  if(!state.cloud || !state.businessId) return;
+  try{
+    localStorage.setItem(LOGIN_LOOK_KEY, JSON.stringify({
+      name:b.name,
+      tagline:b.tagline||'',
+      logoUrl:b.logoUrl||'',
+      fontFamily:normalizeFont(b.fontFamily),
+      fontColor:normalizeHex(b.fontColor, DEFAULT_FONT_COLOR),
+    }));
+  }catch(_){}
+}
+
+/** Pinta el encabezado de ENTRAR con el último negocio de este dispositivo. */
+export function restoreLoginLook(){
+  let raw=null;
+  try{ raw=JSON.parse(localStorage.getItem(LOGIN_LOOK_KEY)||'null'); }catch(_){ raw=null; }
+  if(!raw?.name) return;
+  const root=document.documentElement;
+  root.style.setProperty('--brand-font', fontStack(raw.fontFamily));
+  root.style.setProperty('--brand-ink', normalizeHex(raw.fontColor, DEFAULT_FONT_COLOR));
+  paintSetupLook({
+    name:raw.name,
+    tagline:raw.tagline||'',
+    logoUrl:raw.logoUrl||'',
+  });
 }
 
 export function logoPublicUrl(path){
@@ -187,4 +272,6 @@ export function applyChromeBranding(){
   }
   const title=document.querySelector('title');
   if(title && state.cloud) title.textContent=`${b.name} — POS`;
+  paintSetupLook(b);
+  rememberLoginLook(b);
 }

@@ -8,7 +8,7 @@ import { state } from '../state.js';
 import { pickFile, handleFromDrop, loadExcel, loadDemoWorkbook, createNewExcel, canWriteHandle, loadWorkbookForImport, downloadBackup } from '../storage/excel.js';
 import { onSyncChange } from '../storage/events.js';
 import { onDataLoaded, useBackend } from '../storage/index.js';
-import { applyChromeBranding } from '../domain/branding.js';
+import { applyChromeBranding, restoreLoginLook } from '../domain/branding.js';
 import { clearCatalogLocal } from '../domain/catalog.js';
 import { applyStarterCatalogForActiveBusiness, isSmashizaTenant } from '../domain/menu.js';
 import { currentUser, signIn, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog,
@@ -283,6 +283,7 @@ function initCloudLogin(){
 }
 
 export function setupScreen(){
+  restoreLoginLook();
   onDataLoaded(onLoaded);
   initCloudLogin();
   const dz=document.getElementById('drop-zone');

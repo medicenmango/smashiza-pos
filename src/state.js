@@ -27,6 +27,8 @@ export const state = {
   colorPrimary: '',
   colorSecondary: '',
   colorBg: '',
+  fontFamily: 'retro',
+  fontColor: '#ffd700',
   businessSuspended: false,
   platformOperator: false,
 };

@@ -3,7 +3,7 @@
    Permite uso offline básico
 ════════════════════════════════════════ */
 
-const CACHE_NAME = 'smashiza-pos-v40';
+const CACHE_NAME = 'smashiza-pos-v41';
 
 const ASSETS = [
   './',
@@ -48,7 +48,7 @@ const ASSETS = [
   './demo-data.js',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js',
-  'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Roboto:wght@400;700&display=swap',
+  'https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Roboto:wght@400;700&family=Nunito:wght@700;800&display=swap',
 ];
 
 // INSTALL: cache all assets

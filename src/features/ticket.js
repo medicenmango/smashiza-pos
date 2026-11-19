@@ -1,4 +1,4 @@
-import { activeBranding } from '../domain/branding.js';
+import { activeBranding, fontStack, normalizeFont } from '../domain/branding.js';
 import { cartSubtotal, cartTotal } from './nueva-orden.js';
 import { state } from '../state.js';
 import { toast } from '../ui/toast.js';
@@ -72,10 +72,12 @@ function loadLogoImage(url){
 
 export function layoutTicket(ctx, data, W, pad, brand, logoImg){
   const inner=W-pad*2;
+  const display=fontStack(brand.fontFamily);
+  const retro=normalizeFont(brand.fontFamily)==='retro';
   const body='16px "Share Tech Mono","Courier New",monospace';
   const small='13px "Share Tech Mono","Courier New",monospace';
-  const title='700 20px "Share Tech Mono","Courier New",monospace';
-  const total='700 30px "Share Tech Mono","Courier New",monospace';
+  const title=`${retro?'':'700 '}${retro?14:22}px ${display}`;
+  const total=`${retro?'':'700 '}${retro?16:28}px ${display}`;
   const rows=[];
   const add=(kind, payload)=>rows.push({kind, ...payload});
   if(logoImg){
@@ -170,7 +172,7 @@ export async function drawTicketBlob(data){
       const x=pad+(layout.inner-r.w)/2;
       ctx.drawImage(r.img, x, y, r.w, r.h-10);
     } else if(r.kind==='title'){
-      ctx.fillStyle='#ffd700'; ctx.font=layout.fonts.title;
+      ctx.fillStyle=brand.fontColor||'#ffd700'; ctx.font=layout.fonts.title;
       ctx.fillText(r.text, pad, y+18);
     } else if(r.kind==='sub'){
       ctx.fillStyle=beige; ctx.font=layout.fonts.small;
@@ -201,7 +203,7 @@ export async function drawTicketBlob(data){
       ctx.textAlign='right'; ctx.fillText(r.value, W-pad, y+14); ctx.textAlign='left';
       ctx.globalAlpha=1;
     } else if(r.kind==='total'){
-      ctx.fillStyle='#ffd700'; ctx.font=layout.fonts.total;
+      ctx.fillStyle=brand.fontColor||'#ffd700'; ctx.font=layout.fonts.total;
       ctx.fillText(r.label, pad, y+26);
       ctx.textAlign='right'; ctx.fillText(r.value, W-pad, y+26); ctx.textAlign='left';
     } else if(r.kind==='foot'){
