@@ -8,7 +8,7 @@ import {
   updateMyBusinessBranding, uploadBusinessLogo, clearBusinessLogo, createMyBusiness,
   switchActiveBusiness, resolveActiveBusiness, syncStatus, updateMyBusinessTheme,
   deleteMyBusiness, listBusinessMembers, createBusinessCashier, removeBusinessMember,
-  currentUser,
+  currentUser, listPlatformBusinesses, provisionCustomerBusiness, setBusinessSuspended,
 } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
 import { escHtml } from '../utils/format.js';
@@ -83,7 +83,9 @@ function fillForm(){
     });
   }
   const createWrap=document.getElementById('biz-create-extra');
-  if(createWrap) createWrap.classList.toggle('hidden', !isOwner());
+  if(createWrap) createWrap.classList.toggle('hidden', !state.platformOperator);
+  const platform=document.getElementById('biz-platform-block');
+  if(platform) platform.classList.toggle('hidden', !state.platformOperator);
   const delBlock=document.getElementById('biz-delete-block');
   const canDelete=isOwner() && state.businessId && state.businessId!==SMASHIZA_BUSINESS_ID;
   if(delBlock){
@@ -145,6 +147,68 @@ async function refreshTeamList(){
   }
 }
 
+function fmtWhen(iso){
+  if(!iso) return '';
+  try{
+    const d=new Date(iso);
+    if(Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString('es-MX', { dateStyle:'medium' });
+  }catch(_){
+    return '';
+  }
+}
+
+async function refreshPlatformList(){
+  const list=document.getElementById('biz-platform-list');
+  if(!list || !state.platformOperator) return;
+  list.innerHTML='<li class="setup-hint">Cargando negocios…</li>';
+  try{
+    const rows=await listPlatformBusinesses();
+    if(!rows.length){
+      list.innerHTML='<li class="setup-hint">No hay negocios.</li>';
+      return;
+    }
+    list.innerHTML=rows.map(b=>{
+      const smashiza=b.id===SMASHIZA_BUSINESS_ID;
+      const status=smashiza?'Siempre activo':(b.suspended?'Suspendido':'Activo');
+      const statusCls=smashiza||!b.suspended?'on':'off';
+      const when=fmtWhen(b.createdAt);
+      const owners=b.owners?`Dueño: ${b.owners}`:'Sin dueño';
+      const meta=[owners, `${b.memberCount} en el equipo`, when].filter(Boolean).join(' · ');
+      const toggle=smashiza?'':`<button type="button" class="btn-secondary biz-platform-toggle" data-id="${escHtml(b.id)}" data-name="${escHtml(b.name)}" data-suspend="${b.suspended?'0':'1'}">${b.suspended?'Reactivar':'Suspender'}</button>`;
+      return `<li class="biz-platform-row">
+        <div>
+          <div class="biz-platform-name">${escHtml(b.name)}</div>
+          <div class="biz-platform-meta">${escHtml(meta)}</div>
+        </div>
+        <span class="biz-platform-status ${statusCls}">${escHtml(status)}</span>
+        ${toggle}
+      </li>`;
+    }).join('');
+    list.querySelectorAll('.biz-platform-toggle').forEach(btn=>{
+      btn.addEventListener('click', async()=>{
+        const suspend=btn.dataset.suspend==='1';
+        const name=btn.dataset.name||'este negocio';
+        const ok=confirm(suspend
+          ? `¿Suspender “${name}”? No podrán vender ni editar hasta que lo reactives.`
+          : `¿Reactivar “${name}”? Vuelven a entrar con su usuario.`);
+        if(!ok) return;
+        btn.disabled=true;
+        try{
+          await setBusinessSuspended({ businessId:btn.dataset.id, suspended:suspend });
+          toast(suspend?'✔ Negocio suspendido.':'✔ Negocio reactivado.','success');
+          await refreshPlatformList();
+        }catch(err){
+          toast('Error: '+err.message,'error');
+          btn.disabled=false;
+        }
+      });
+    });
+  }catch(err){
+    list.innerHTML=`<li class="setup-hint">No se pudo cargar la lista: ${escHtml(err.message)}</li>`;
+  }
+}
+
 export function renderNegocioTab(){
   const root=document.getElementById('tab-negocio');
   if(!root) return;
@@ -163,6 +227,7 @@ export function renderNegocioTab(){
   fillForm();
   applyChromeBranding();
   refreshTeamList();
+  refreshPlatformList();
   resolveActiveBusiness().then(()=>{
     if(meta){
       meta.innerHTML=`Negocio activo: <strong>${escHtml(state.businessName||'—')}</strong>
@@ -172,6 +237,7 @@ export function renderNegocioTab(){
     fillThemePickers();
     applyChromeBranding();
     refreshTeamList();
+    refreshPlatformList();
   }).catch(()=>{});
 }
 
@@ -293,8 +359,41 @@ export function initNegocioTab(){
     }
   });
 
+  document.getElementById('biz-provision-form')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!state.platformOperator){ toast('Solo Smashiza puede dar acceso.','error'); return; }
+    const nameEl=document.getElementById('biz-provision-name');
+    const userEl=document.getElementById('biz-provision-user');
+    const passEl=document.getElementById('biz-provision-password');
+    const name=(nameEl?.value||'').trim();
+    const username=(userEl?.value||'').trim();
+    const password=passEl?.value||'';
+    if(!name){ toast('Escribe el nombre del negocio.','error'); return; }
+    if(!username){ toast('Escribe el usuario del dueño.','error'); return; }
+    if(!password || password.length<6){ toast('Contraseña: mínimo 6 caracteres.','error'); return; }
+    const btn=document.getElementById('biz-provision-btn');
+    if(btn) btn.disabled=true;
+    try{
+      const created=await provisionCustomerBusiness({ name, username, password });
+      if(nameEl) nameEl.value='';
+      if(userEl) userEl.value='';
+      if(passEl) passEl.value='';
+      const result=document.getElementById('biz-provision-result');
+      if(result){
+        result.classList.remove('hidden');
+        result.textContent=`Listo: ${created.name}. Usuario “${created.username}”. Anota la contraseña ahora; no se vuelve a mostrar. El dueño entra con eso y crea a sus cajeros en EQUIPO.`;
+      }
+      toast(`✔ Acceso creado para ${created.username}.`,'success');
+      await refreshPlatformList();
+    }catch(err){
+      toast('Error: '+err.message,'error');
+    }finally{
+      if(btn) btn.disabled=false;
+    }
+  });
+
   document.getElementById('biz-create-extra-btn')?.addEventListener('click',async()=>{
-    if(!isOwner()) return;
+    if(!state.platformOperator) return;
     const name=prompt('Nombre del nuevo negocio:');
     if(name==null) return;
     const trimmed=name.trim();

@@ -93,6 +93,7 @@ function mapBusinessRow(r){
     colorPrimary:r.color_primary||'#e63232',
     colorSecondary:r.color_secondary||'#1a3bcc',
     colorBg:r.color_bg||'#0d0820',
+    suspended:r.suspended===true,
   };
 }
 
@@ -108,6 +109,7 @@ function applyBusiness(b){
   state.colorPrimary=b.colorPrimary||'#e63232';
   state.colorSecondary=b.colorSecondary||'#1a3bcc';
   state.colorBg=b.colorBg||'#0d0820';
+  state.businessSuspended=b.suspended===true;
   storeBusinessId(b.id);
 }
 
@@ -124,6 +126,7 @@ function clearBusinessState(){
   state.colorPrimary='';
   state.colorSecondary='';
   state.colorBg='';
+  state.businessSuspended=false;
   storeBusinessId('');
 }
 
@@ -169,6 +172,57 @@ export function switchActiveBusiness(businessId){
  * Alta de dueño por usuario (sin Auth signup / sin confirmar correo).
  * RPC crea el user en Auth; luego signIn abre sesión.
  */
+/** Dueño de La Smashiza: puede dar de alta y suspender clientes. */
+export async function refreshPlatformOperator(){
+  try{
+    state.platformOperator=check(await db().rpc('is_platform_operator'))===true;
+  }catch(_){
+    state.platformOperator=false;
+  }
+  return state.platformOperator;
+}
+
+export async function listPlatformBusinesses(){
+  const rows=check(await db().rpc('list_platform_businesses'))||[];
+  return rows.map(r=>({
+    id:r.id,
+    name:r.name||'',
+    slug:r.slug||'',
+    suspended:r.suspended===true,
+    createdAt:r.created_at||'',
+    owners:r.owners||'',
+    memberCount:Number(r.member_count)||0,
+  }));
+}
+
+/** Negocio nuevo + usuario dueño. Quien opera no queda como dueño. */
+export async function provisionCustomerBusiness({ name, username, password }={}){
+  const user=normalizeUsername(username);
+  if(!password || String(password).length<6){
+    throw new Error('La contraseña debe tener al menos 6 caracteres.');
+  }
+  const row=check(await db().rpc('provision_customer_business', {
+    p_name:name,
+    p_username:user,
+    p_password:password,
+  }));
+  return {
+    businessId:row?.business_id||'',
+    username:row?.username||user,
+    name:row?.name||name,
+  };
+}
+
+export async function setBusinessSuspended({ businessId, suspended }={}){
+  const bid=String(businessId||'');
+  if(!bid) throw new Error('Falta el negocio.');
+  if(bid===SMASHIZA_BUSINESS_ID) throw new Error('La Smashiza no se suspende.');
+  return check(await db().rpc('set_business_suspended', {
+    p_business_id:bid,
+    p_suspended:!!suspended,
+  }))===true;
+}
+
 export async function registerWithUsername(username, password){
   const user=normalizeUsername(username);
   if(!password || String(password).length<6){
@@ -787,6 +841,7 @@ async function cacheState(){
       ticketName:state.ticketName, ticketTagline:state.ticketTagline, phone:state.phone,
       ticketFooter:state.ticketFooter, logoPath:state.logoPath,
       colorPrimary:state.colorPrimary, colorSecondary:state.colorSecondary, colorBg:state.colorBg,
+      businessSuspended:state.businessSuspended===true,
     }, 'state'));
   }catch(e){ console.warn('[Smashiza] no se pudo guardar la copia local', e); }
 }
@@ -822,6 +877,7 @@ export async function loadFromCache(){
     state.colorPrimary=c.colorPrimary||'#e63232';
     state.colorSecondary=c.colorSecondary||'#1a3bcc';
     state.colorBg=c.colorBg||'#0d0820';
+    state.businessSuspended=c.businessSuspended===true;
   }
   saved=Object.fromEntries(Object.entries(c.saved||{}).map(([t,entries])=>[t,new Map(entries)]));
   offline=true;

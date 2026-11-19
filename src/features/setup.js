@@ -11,11 +11,12 @@ import { onDataLoaded, useBackend } from '../storage/index.js';
 import { applyChromeBranding } from '../domain/branding.js';
 import { clearCatalogLocal } from '../domain/catalog.js';
 import { applyStarterCatalogForActiveBusiness, isSmashizaTenant } from '../domain/menu.js';
-import { currentUser, signIn, registerWithUsername, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog,
+import { currentUser, signIn, signOut, countRows, loadFromSupabase, importStateToSupabase, uploadMenuCatalog,
   isNetworkError, hasCache, loadFromCache, syncStatus, startAutoSync, resolveActiveBusiness, createMyBusiness,
+  refreshPlatformOperator, switchActiveBusiness,
 } from '../storage/supabase.js';
 import { toast } from '../ui/toast.js';
-import { today } from '../utils/format.js';
+import { escHtml, today } from '../utils/format.js';
 
 function updateWriteMode(){
   const el=document.getElementById('excel-write-mode');
@@ -69,25 +70,33 @@ function statusFn(id){
 function initCloudLogin(){
   const showSt=statusFn('login-status');
   const form=document.getElementById('login-form');
-  const signupForm=document.getElementById('signup-form');
   const importPanel=document.getElementById('import-panel');
   const createBizPanel=document.getElementById('create-business-panel');
-  const linkSignup=document.getElementById('link-show-signup');
+  const accessClosed=document.getElementById('access-closed-panel');
+  const accessHint=document.getElementById('login-access-hint');
 
   function showLogin(){
     form?.classList.remove('hidden');
-    signupForm?.classList.add('hidden');
     createBizPanel?.classList.add('hidden');
     importPanel?.classList.add('hidden');
-    linkSignup?.parentElement?.classList.remove('hidden');
+    accessClosed?.classList.add('hidden');
+    accessHint?.classList.remove('hidden');
   }
 
   function showCreateBusiness(){
     form?.classList.add('hidden');
-    signupForm?.classList.add('hidden');
     importPanel?.classList.add('hidden');
-    linkSignup?.parentElement?.classList.add('hidden');
+    accessClosed?.classList.add('hidden');
+    accessHint?.classList.add('hidden');
     createBizPanel?.classList.remove('hidden');
+  }
+
+  function showAccessClosed(){
+    form?.classList.add('hidden');
+    createBizPanel?.classList.add('hidden');
+    importPanel?.classList.add('hidden');
+    accessHint?.classList.add('hidden');
+    accessClosed?.classList.remove('hidden');
   }
 
   /** Vuelve a ENTRAR. Cierra sesión si había una (p.ej. tras signup sin negocio). */
@@ -110,19 +119,25 @@ function initCloudLogin(){
     useBackend('supabase');
     showSt('Cargando datos de la nube...','info');
     try{
+      await refreshPlatformOperator();
       const biz=await resolveActiveBusiness();
       if(!biz){
-        showCreateBusiness();
-        showSt('✔ Sesión iniciada. Crea tu negocio para continuar.','success');
+        if(state.platformOperator){
+          showCreateBusiness();
+          showSt('✔ Sesión iniciada. Crea tu negocio para continuar.','success');
+        }else{
+          showAccessClosed();
+          showSt('Esta cuenta no tiene negocio. Pide tu acceso a Smashiza.','error');
+        }
         return;
       }
       applyChromeBranding();
       showSt(`Negocio: ${biz.name}. Cargando...`,'info');
       if(await countRows('orders')===0 && await countRows('menu_items')===0){
         form.classList.add('hidden');
-        signupForm?.classList.add('hidden');
         createBizPanel?.classList.add('hidden');
-        linkSignup?.parentElement?.classList.add('hidden');
+        accessClosed?.classList.add('hidden');
+        accessHint?.classList.add('hidden');
         importPanel.classList.remove('hidden');
         showSt(`✔ Sesión en ${biz.name}. La base de este negocio está vacía.`,'success');
         return;
@@ -151,14 +166,7 @@ function initCloudLogin(){
     }catch(e){ showSt('Error al importar: '+e.message,'error'); }
   }
 
-  linkSignup?.addEventListener('click',e=>{
-    e.preventDefault();
-    form.classList.add('hidden');
-    signupForm?.classList.remove('hidden');
-    linkSignup.parentElement?.classList.add('hidden');
-    showSt('Elige un usuario y contraseña. Sin correo ni confirmación.','info');
-  });
-  document.getElementById('btn-signup-cancel')?.addEventListener('click',()=>{
+  document.getElementById('btn-access-closed-back')?.addEventListener('click',()=>{
     backToLogin();
   });
   document.getElementById('btn-create-biz-back')?.addEventListener('click',()=>{
@@ -182,33 +190,6 @@ function initCloudLogin(){
       const msg=/invalid login credentials/i.test(e.message)?'Usuario o contraseña incorrectos.':e.message;
       showSt('Error: '+msg,'error');
     }finally{ btn.disabled=false; }
-  });
-
-  signupForm?.addEventListener('submit',async e=>{
-    e.preventDefault();
-    const btn=document.getElementById('btn-signup');
-    if(btn) btn.disabled=true;
-    try{
-      showSt('Creando cuenta...','info');
-      const userEl=document.getElementById('signup-user')||document.getElementById('signup-email');
-      await registerWithUsername(
-        userEl.value.trim(),
-        document.getElementById('signup-password').value,
-      );
-      document.getElementById('signup-password').value='';
-      await enterCloud();
-    }catch(err){
-      let msg=err.message||String(err);
-      if(/signups not allowed/i.test(msg)){
-        msg='Altas por correo desactivadas. Usa usuario + contraseña (pega el SQL 011 si aún no).';
-      }
-      if(/check your email|confirm/i.test(msg)){
-        msg='No hace falta confirmar correo. Revisa el SQL 011 / vuelve a intentar.';
-      }
-      showSt('Error: '+msg,'error');
-    }finally{
-      if(btn) btn.disabled=false;
-    }
   });
 
   document.getElementById('create-business-form')?.addEventListener('submit',async e=>{
@@ -277,6 +258,21 @@ function initCloudLogin(){
     location.reload();
   });
 
+  document.getElementById('suspended-logout')?.addEventListener('click',async()=>{
+    await signOut();
+    location.reload();
+  });
+  document.getElementById('suspended-switcher')?.addEventListener('change',e=>{
+    const id=e.target.value;
+    if(!id||id===state.businessId) return;
+    try{
+      if(!switchActiveBusiness(id)) return;
+      location.reload();
+    }catch(err){
+      toast('Error: '+err.message,'error');
+    }
+  });
+
   onSyncChange(updateWriteMode);
   startAutoSync();
 
@@ -328,9 +324,31 @@ export function setupScreen(){
   if(demoBtn) demoBtn.addEventListener('click',e=>{ e.preventDefault(); startDemoMode(); });
 }
 
+/** Tapa el POS si el negocio activo está suspendido y quien entra no opera Smashiza. */
+export function applyAccessGate(){
+  const wall=document.getElementById('suspended-wall');
+  if(!wall) return;
+  const blocked=!!state.cloud && state.businessSuspended===true && !state.platformOperator;
+  wall.classList.toggle('hidden', !blocked);
+  if(!blocked) return;
+  const nameEl=document.getElementById('suspended-biz-name');
+  if(nameEl) nameEl.textContent=state.ticketName||state.businessName||'Este negocio';
+  const wrap=document.getElementById('suspended-switch-wrap');
+  const sel=document.getElementById('suspended-switcher');
+  const others=(state.businesses||[]).filter(b=>b.id!==state.businessId && !b.suspended);
+  if(wrap) wrap.classList.toggle('hidden', others.length<1);
+  if(sel){
+    sel.innerHTML=others.map(b=>{
+      const label=b.ticketName||b.name||b.id;
+      return `<option value="${escHtml(b.id)}">${escHtml(label)}</option>`;
+    }).join('');
+  }
+}
+
 export function goToApp(){
   document.getElementById('screen-setup').classList.replace('active','hidden');
   document.getElementById('screen-app').classList.replace('hidden','active');
+  applyAccessGate();
   // Pre-select today in dashboard
   state.dashSelectedDates = new Set([today()]);
   refreshDashboard(); renderOrdersTable(); updateOrderNumBadge();

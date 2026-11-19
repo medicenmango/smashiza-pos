@@ -27,4 +27,6 @@ export const state = {
   colorPrimary: '',
   colorSecondary: '',
   colorBg: '',
+  businessSuspended: false,
+  platformOperator: false,
 };
